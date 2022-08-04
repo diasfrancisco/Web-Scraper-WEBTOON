@@ -1,6 +1,8 @@
 import os
 import time
 import json
+import asyncio
+import aiohttp
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -16,12 +18,15 @@ from webtoon.single_episode import ScrapeImages
 
 
 class Webtoon(webdriver.Chrome):
-    '''Main Webtoon class that contains the methods needed to scrape data from
+    '''
+    Main Webtoon class that contains the methods needed to scrape data from
     Webtoon. It inherits form the webdriver.Chrome module to use the methods
-    described in selenium'''
+    described in selenium
+    '''
 
     def __init__(self, executable_path=r"/usr/local/bin", collapse=False):
-        '''Initilises the class with the necessary attributes
+        '''
+        Initilises the class with the necessary attributes
 
         --Atributes--
         self.executable_path = stores the path to the webdriver
@@ -30,7 +35,8 @@ class Webtoon(webdriver.Chrome):
         after running
 
         The webdriver is also set to run in headless mode using the
-        webdriver.ChromeOptions() class'''
+        webdriver.ChromeOptions() class
+        '''
         # Initialise the navigation class
         self.executable_path = executable_path
         self.collapse = collapse
@@ -40,18 +46,24 @@ class Webtoon(webdriver.Chrome):
         super(Webtoon, self).__init__(options=options)
 
     def __exit__(self, *args):
-        '''Closes the browser after complete'''
+        '''
+        Closes the browser after completion
+        '''
         # Exit the webpage
         if self.collapse:
             return super().__exit__(*args)
 
     def get_main_page(self):
-        '''Gets the main page of WEBTOON'''
+        '''
+        Gets the main page of WEBTOON
+        '''
         # Load the base url
         self.get(const.BASE_URL)
 
     def bypass_age_gate(self):
-        '''This method is used to bypass the Age Verification page that loads'''
+        '''
+        This method is used to bypass the Age Verification page that loads
+        '''
         # Enter the day
         day_path = self.find_element(By.XPATH, '//*[@id="_day"]')
         day_path.send_keys(const.DOB_DAY)
@@ -77,7 +89,9 @@ class Webtoon(webdriver.Chrome):
         ).click()
 
     def load_and_accept_cookies(self):
-        '''This method waits for the cookies to appear and accepts them'''
+        '''
+        This method waits for the cookies to appear and accepts them
+        '''
         try:
             # Wait until the cookies frame appear and accept them
             WebDriverWait(
@@ -93,9 +107,11 @@ class Webtoon(webdriver.Chrome):
         accept_cookies_button.click()
 
     def create_main_dirs(self):
-        '''This method creates an instance of the CreateDirs() class and runs the
+        '''
+        This method creates an instance of the CreateDirs() class and runs the
         static_dirs method to create the necessary, base directories to be used
-        to store all raw data'''
+        to store all raw data
+        '''
         main_dirs = CreateDirs()
         main_dirs.static_dirs()
 
@@ -109,22 +125,30 @@ class Webtoon(webdriver.Chrome):
         genres_and_webtoon_urls.get_webtoon_list()
 
     def get_webtoon_info(self):
-        '''This method reads in a json file containing the urls of every webtoon
+        '''
+        This method reads in a json file containing the urls of every webtoon
         on WEBTOON. It loops through all the values from that dictionary and runs
         an instance of the GetDetails() class running the get_basic_info method
-        on them'''
+        on them
+        '''
         with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:
             dict_of_webtoon_links = json.load(f)
 
         for webtoon_list in dict_of_webtoon_links.values():
-            info = GetDetails(driver=self)
-            info.get_basic_info(webtoon_list)
+            for webtoon_url in webtoon_list:
+                options = webdriver.ChromeOptions()
+                options.add_argument("--headless")
+                super(Webtoon, self).__init__(options=options)
+                info = GetDetails(driver=self)
+                info.get_basic_info(webtoon_url)
 
     def get_IDs_and_imgs(self):
-        '''This method reads in the json file containing the urls of every
+        '''
+        This method reads in the json file containing the urls of every
         webtoon available on WEBTOON. It then grabs each list from every genre
         and from there every single webtoon. An instance of the ScrapeImages()
-        class is set and the loop_through_episodes method run for each one'''
+        class is set and the loop_through_episodes method run for each one
+        '''
         with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:
             dict_of_webtoon_links = json.load(f)
 

@@ -1,5 +1,7 @@
-from webtoon.to_WEBTOON import Webtoon
 import time
+import asyncio
+
+from webtoon.to_WEBTOON import Webtoon
 
 
 def main():
@@ -15,8 +17,8 @@ def main():
         print(f'Completed genre and webtoon url collection in {time.time() - start_time} seconds')
         bot.get_webtoon_info()
         print(f'Gathered all webtoon info in {time.time() - start_time} seconds')
-        bot.get_IDs_and_imgs()
-        print(f'Scraped all images in {time.time() - start_time} seconds')
+        # bot.get_IDs_and_imgs()
+        # print(f'Scraped all images in {time.time() - start_time} seconds')
 
 if __name__=="__main__":
     main()
