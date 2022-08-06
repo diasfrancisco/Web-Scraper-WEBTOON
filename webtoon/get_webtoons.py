@@ -130,7 +130,7 @@ class GetWebtoonLinks:
                     pass
                 except KeyError:
                     dict_of_webtoon_links[genre] = []
-            json.dump(dict_of_webtoon_links, f)
+            json.dump(dict_of_webtoon_links, f, indent=4)
 
         with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
             for gen in self._g_list:
@@ -141,7 +141,7 @@ class GetWebtoonLinks:
                 webtoons = webtoon_container.find_elements(By.TAG_NAME, 'li')
                 updated_genre_urls = self.get_all_webtoon_urls(webtoons, current_genre_urls)
                 dict_of_webtoon_links[gen] = updated_genre_urls
-            json.dump(dict_of_webtoon_links, f)
+            json.dump(dict_of_webtoon_links, f, indent=4)
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
         '''This method is called within the get_webtoon_list method and loops through

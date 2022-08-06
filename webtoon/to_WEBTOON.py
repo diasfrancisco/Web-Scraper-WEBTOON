@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import driver
 import os
 import time
 import json
@@ -124,7 +125,7 @@ class Webtoon(webdriver.Chrome):
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
 
-    def get_webtoon_info(self):
+    async def get_webtoon_info(self):
         '''
         This method reads in a json file containing the urls of every webtoon
         on WEBTOON. It loops through all the values from that dictionary and runs
@@ -135,12 +136,14 @@ class Webtoon(webdriver.Chrome):
             dict_of_webtoon_links = json.load(f)
 
         for webtoon_list in dict_of_webtoon_links.values():
-            for webtoon_url in webtoon_list:
-                options = webdriver.ChromeOptions()
-                options.add_argument("--headless")
-                super(Webtoon, self).__init__(options=options)
-                info = GetDetails(driver=self)
-                info.get_basic_info(webtoon_url)
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for webtoon_url in webtoon_list:
+                    info = GetDetails(driver=self)
+                    task = asyncio.ensure_future(info.get_basic_info(session, webtoon_url))
+                    tasks.append(task)
+                
+                await asyncio.gather(*tasks)
 
     def get_IDs_and_imgs(self):
         '''
