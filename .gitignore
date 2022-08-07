@@ -1,4 +1,4 @@
-__pycache__
-tests
-raw_data
-.ipynb
+raw_data/
+tests/
+webtoon/__pycache__/
+_test.ipynb
