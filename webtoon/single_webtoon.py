@@ -27,8 +27,10 @@ class GetDetails:
 
     async def get_basic_info(self, session, webtoon_url):
         '''
-        Loops through every webtoon and grabs the title, author, genre, views,
-        subscribers and ratings. It then saves the info to a dictionary
+        Creates a dir for the webtoon being worked on. Then performs a GET request to
+        the webtoon_url using the headers provided. Using BeautifulSoup it parses the
+        html content to grab the genre, title, author, views, subscribers and rating,
+        and saves it to a json file
         '''
         CreateDirs.webtoon_dir(self, webtoon_url)
 

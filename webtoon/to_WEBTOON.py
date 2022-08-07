@@ -117,10 +117,11 @@ class Webtoon(webdriver.Chrome):
         main_dirs.static_dirs()
 
     def scrape_genres_and_webtoon_urls(self):
-        '''This method creates an instance of the GetWebtoonLinks() class and
+        '''
+        This method creates an instance of the GetWebtoonLinks() class and
         runs the get_genres and get_webtoon_list methods to scrape all the genres
-        currently present and the complete list of webtoons present'''
-        # Calls the class and methods needed to get genres and webtoon urls
+        currently present and the complete list of webtoons present
+        '''
         genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
@@ -128,8 +129,9 @@ class Webtoon(webdriver.Chrome):
     async def get_webtoon_info(self):
         '''
         This method reads in a json file containing the urls of every webtoon
-        on WEBTOON. It loops through all the values from that dictionary and runs
-        an instance of the GetDetails() class running the get_basic_info method
+        on WEBTOON. It loops through all the values from that dictionary and 
+        asynchrounously runs an instance of the GetDetails() class running the
+        get_basic_info method via aiohttp
         on them
         '''
         with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:

@@ -11,23 +11,29 @@ import webtoon.constants as const
 
 
 class GetWebtoonLinks:
-    '''This class is responsible for scraping all the genres and webtoon urls present
-    on WEBTOON'''
+    '''
+    This class is responsible for scraping all the genres and webtoon urls present
+    on WEBTOON
+    '''
     # Initialise the link collection class
     def __init__(self, driver:WebDriver):
-        '''This dunder method initialises the attributes used in the global scope
+        '''
+        This dunder method initialises the attributes used in the global scope
         
         --Attributes--
         self.driver = sets the driver to self
         self._g_list = a private attribute used to temporarily store information
-        about the genres'''
+        about the genres
+        '''
         self.driver = driver
         self._g_list = []
 
     def get_genres(self):
-        '''This method loops through all the genres currently present on WEBTOON and
+        '''
+        This method loops through all the genres currently present on WEBTOON and
         add thems to a json file if they are not already present. It also adds to the
-        self._g_list attribute all the data-genre attributes of all genres'''
+        self._g_list attribute all the data-genre attributes of all genres
+        '''
         self.driver.find_element(By.XPATH, '//*[@class="NPI=a:genre,g:en_en"]').click()
 
         # Wait for the main genre element to appear
@@ -97,9 +103,11 @@ class GetWebtoonLinks:
             self._g_list.append(_other_name)
 
     def get_webtoon_list(self):
-        '''This method is used to create a json file containing all the links to
+        '''
+        This method is used to create a json file containing all the links to
         every webtoon that currently exists on WEBTOON. It will gradually append to
-        the list as new entries are added'''
+        the list as new entries are added
+        '''
         # Wait for the container element to appear
         try:
             WebDriverWait(self.driver, const.DELAY).until(
@@ -144,9 +152,11 @@ class GetWebtoonLinks:
             json.dump(dict_of_webtoon_links, f, indent=4)
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
-        '''This method is called within the get_webtoon_list method and loops through
+        '''
+        This method is called within the get_webtoon_list method and loops through
         every webtoon to see if it is present in the current dictionary. If it is not, 
-        it will append to it'''
+        it will append to it
+        '''
         for webtoon in webtoons:
             # For every li tag, get the link from the 'href' attribute and
             # append this to a list

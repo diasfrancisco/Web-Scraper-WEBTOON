@@ -5,8 +5,10 @@ from webtoon.to_WEBTOON import Webtoon
 
 
 def main():
-    '''This is the main script file that runs the major methods in the Webtoon() class.
-    Its uses a 'with' block to make sure the scraper closes once complete'''
+    '''
+    This is the main script file that runs the major methods in the Webtoon() class.
+    Its uses a 'with' block to make sure the scraper closes once complete
+    '''
     with Webtoon(collapse=True) as bot:
         t0 = time.time()
         bot.get_main_page()
