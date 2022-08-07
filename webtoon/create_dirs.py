@@ -42,14 +42,14 @@ class CreateDirs:
         else:
             os.mkdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}')
 
-    def episode_dir(self, current_ep_url):
+    def episode_dir(self, ep_url):
         '''This method creates a directory for every episode in the webtoon'''
         # Create a new directory for each webtoon and further children
         # directories if they do not exist
-        webtoon_folder = current_ep_url.split('/')[5]
+        webtoon_folder = ep_url.split('/')[5]
         with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'r') as f:
             dict_of_friendly_ID = json.load(f)
-            episode_folder = dict_of_friendly_ID[current_ep_url]
+            episode_folder = dict_of_friendly_ID[ep_url]
         if os.path.isdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}'):
             pass
         else:

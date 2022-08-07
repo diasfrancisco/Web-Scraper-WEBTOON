@@ -147,7 +147,7 @@ class Webtoon(webdriver.Chrome):
                 
                 await asyncio.gather(*tasks)
 
-    def get_IDs_and_imgs(self):
+    async def generate_IDs_and_scrape_imgs(self):
         '''
         This method reads in the json file containing the urls of every
         webtoon available on WEBTOON. It then grabs each list from every genre
@@ -158,6 +158,21 @@ class Webtoon(webdriver.Chrome):
             dict_of_webtoon_links = json.load(f)
 
         for webtoon_list in dict_of_webtoon_links.values():
-            for webtoon_url in webtoon_list:
-                scrape_imgs = ScrapeImages(driver=self)
-                scrape_imgs.loop_through_episodes(webtoon_url)
+            async with aiohttp.ClientSession() as session:
+                tasks1 = []
+                for webtoon_url in webtoon_list:
+                    get_all_eps = ScrapeImages(driver=self)
+                    task1 = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
+                    tasks1.append(task1)
+                
+                all_ep_list = await asyncio.gather(*tasks1)
+
+        for ep_list in all_ep_list:
+            async with aiohttp.ClientSession() as session:
+                tasks2 = []
+                for ep_url in ep_list:
+                    IDs_and_imgs = ScrapeImages(driver=self)
+                    task2 = asyncio.ensure_future(IDs_and_imgs.generate_IDs_and_get_img_urls(session, ep_url))
+                    tasks2.append(task2)
+
+                await asyncio.gather(*tasks2)

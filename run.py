@@ -22,12 +22,13 @@ def main():
         t2 = time.time()
         asyncio.run(bot.get_webtoon_info())
         print(f'Gathered all webtoon info in {time.time() - t2} seconds')
-        # bot.get_IDs_and_imgs()
-        # print(f'Scraped all images in {time.time() - start_time} seconds')
+        t3 = time.time()
+        asyncio.run(bot.generate_IDs_and_scrape_imgs())
+        print(f'Scraped all images in {time.time() - t3} seconds')
         print()
         print('------------------------------ Total time ------------------------------')
         print(f'                       {time.time() - t0} seconds')
         print()
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
