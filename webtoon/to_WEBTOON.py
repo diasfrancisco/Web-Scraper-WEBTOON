@@ -1,7 +1,7 @@
-from lib2to3.pgen2 import driver
 import os
 import time
 import json
+import glob
 import asyncio
 import aiohttp
 
@@ -147,7 +147,7 @@ class Webtoon(webdriver.Chrome):
                 
                 await asyncio.gather(*tasks)
 
-    async def generate_IDs_and_scrape_imgs(self):
+    async def get_episode_list(self):
         '''
         This method reads in the json file containing the urls of every
         webtoon available on WEBTOON. It then grabs each list from every genre
@@ -165,14 +165,32 @@ class Webtoon(webdriver.Chrome):
                     task1 = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
                     tasks1.append(task1)
                 
-                all_ep_list = await asyncio.gather(*tasks1)
+                await asyncio.gather(*tasks1)
 
-        for ep_list in all_ep_list:
-            async with aiohttp.ClientSession() as session:
-                tasks2 = []
-                for ep_url in ep_list:
-                    IDs_and_imgs = ScrapeImages(driver=self)
-                    task2 = asyncio.ensure_future(IDs_and_imgs.generate_IDs_and_get_img_urls(session, ep_url))
-                    tasks2.append(task2)
+    async def generate_IDs_and_scrape_img_urls(self):
+        ep_files_path = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/episode_list.json'
+        episode_files = glob.glob(ep_files_path)
 
-                await asyncio.gather(*tasks2)
+        async with aiohttp.ClientSession() as session:
+            tasks2 = []
+            for file in episode_files:
+                img_urls = ScrapeImages(driver=self)
+                task2 = asyncio.ensure_future(img_urls.generate_IDs_and_get_img_urls(session, file))
+                tasks2.append(task2)
+
+            await asyncio.gather(*tasks2)
+
+
+    # async def scrape_image_urls(self):
+    #     webtoon_dir = '/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/'
+    #     episode_files = glob.glob(webtoon_dir)
+
+    #     for ep_list in all_ep_list:
+    #         async with aiohttp.ClientSession() as session:
+    #             tasks2 = []
+    #             for ep_url in ep_list:
+    #                 IDs_and_imgs = ScrapeImages(driver=self)
+    #                 task2 = asyncio.ensure_future(IDs_and_imgs.generate_IDs_and_get_img_urls(session, ep_url))
+    #                 tasks2.append(task2)
+
+    #             await asyncio.gather(*tasks2)
