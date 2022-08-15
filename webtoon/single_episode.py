@@ -1,4 +1,4 @@
-from types import NoneType
+import random
 import uuid
 import math
 import json
@@ -43,7 +43,7 @@ class GenerateIDs:
 
         with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'w') as f:
             dict_of_friendly_ID[ep_url] = friendly_ID
-            json.dump(dict_of_friendly_ID, f)
+            json.dump(dict_of_friendly_ID, f, indent=4)
 
         CreateDirs.episode_dir(self, ep_url)
 
@@ -60,7 +60,7 @@ class GenerateIDs:
             dict_of_v4_UUID = json.load(f)
         with open(const.IDS_DIR_PATH + '/v4_UUIDs.json', 'w') as f:
             dict_of_v4_UUID[ep_url] = v4_UUID
-            json.dump(dict_of_v4_UUID, f)
+            json.dump(dict_of_v4_UUID, f, indent=4)
 
 class ScrapeImages:
     '''
@@ -94,7 +94,7 @@ class ScrapeImages:
             'sec-fetch-site': 'cross-site',
             'sec-fetch-user': '?1',
             'upgrade-insecure-requests': str('1'),
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+            'user-agent': random.choice(const.USER_AGENTS),
         }
         async with session.get(webtoon_url, headers=headers) as response:
             assert response.status == 200
@@ -127,7 +127,6 @@ class ScrapeImages:
                     continue
             with open(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_url.split("/")[5]}/episode_list.json', 'w') as f:
                 ep_list = json.dump(ep_list, f, indent=4)
-
         return
 
     async def generate_IDs_and_get_img_urls(self, session, file):
@@ -142,7 +141,19 @@ class ScrapeImages:
                 pass
             else:
                 with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'w') as f:
-                    json.dump([], f)
+                    json.dump({}, f)
+
+            with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'r') as f:
+                img_src_dict = json.load(f)
+
+            with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'w') as f:
+                # If ep_url is not a key, add to dictionary
+                try:
+                    img_src_list = img_src_dict[ep_url]
+                    pass
+                except KeyError:
+                    img_src_dict[ep_url] = []
+                json.dump(img_src_dict, f, indent=4)
 
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -161,7 +172,7 @@ class ScrapeImages:
                 'sec-fetch-site': 'cross-site',
                 'sec-fetch-user': '?1',
                 'upgrade-insecure-requests': str('1'),
-                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+                'user-agent': random.choice(const.USER_AGENTS),
             }
             try:
                 async with session.get(ep_url, headers=headers) as response:
@@ -171,168 +182,50 @@ class ScrapeImages:
                 soup = BeautifulSoup(html, 'lxml')
                 try:
                     img_tags = soup.find(id='_imageList').find_all('img')
+                    with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'r') as f:
+                        img_src_dict = json.load(f)
+                    with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'w') as f:
+                        for img_tag in img_tags:
+                            img_src_list = img_src_dict[ep_url]
+                            if img_tag['alt'] == 'qrcode':
+                                return
+                            else:
+                                if img_tag not in img_src_list:
+                                    img_src_list.append(img_tag['data-url'])
+                                else:
+                                    continue
+                        json.dump(img_src_dict, f, indent=4)
                 except Exception:
                     return
-                with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'r') as f:
-                    img_src_list = json.load(f)
-                    for img_tag in img_tags:
-                        if img_tag['alt'] == 'qrcode':
-                            return
-                        else:
-                            if img_tag not in img_src_list:
-                                img_src_list.append(img_tag['data-url'])
-                            else:
-                                continue
-                with open(const.ALL_WEBTOONS_DIR_PATH + f'/{ep_url.split("/")[5]}/img_src_list.json', 'w') as f:
-                    json.dump(img_src_list, f)
             except Exception as e:
                 print(ep_url, 'hit the following error: ', e)
 
-    def download_all_images(self, ep_url, img_src_list):
-        with FuturesSession(executor=ThreadPoolExecutor(max_workers=50)) as session:
-            futures = [session.get(src, headers={'referer': src}) for src in img_src_list]
-            img_counter = 1
-            for future in futures:
-                data = future.result()
-                if data.status_code == 200:
-                    image = Image.open(BytesIO(data.content))
-                    if image.mode != 'RGB':
-                        image = image.convert('RGB')
-                    else:
-                        pass
-                    webtoon_ID = ep_url.split("/")[5]
-                    with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'r') as f:
-                        dict_of_friendly_ID = json.load(f)
-                        episode_ID = dict_of_friendly_ID[ep_url]
-                    path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_ID}/{episode_ID}/images/{episode_ID}_{img_counter}'
-                    with open(path, "wb") as f:
-                        image.save(f, 'JPEG')
-                    img_counter += 1
-                else:
-                    pass
+    def download_all_images(self, srcs):
+        with open(srcs, 'r') as f:
+            img_src_lists = json.load(f)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # def loop_through_episodes(self, webtoon_url):
-    #     '''This method goes to each webtoon and gets the latest episode link. It
-    #     then loops through all the episodes using the episode index, running the
-    #     methods required to scrape all the umage data'''
-    #     # Go to latest episode of the webtoon
-    #     self.driver.execute_script("window.open('');")
-    #     self.driver.switch_to.window(self.driver.window_handles[1])
-    #     self.driver.get(webtoon_url)
-    #     ep_container = self.driver.find_element(By.XPATH, '//*[@id="_listUl"]')
-    #     latest_ep = ep_container.find_element(By.TAG_NAME, 'li')
-    #     ep_tag = latest_ep.find_element(By.TAG_NAME, 'a')
-    #     latest_ep_link = ep_tag.get_attribute('href')
-    #     self.driver.get(latest_ep_link)
-
-    #     # Bypass maturity barrier
-    #     self.bypass_maturity_notice()
-
-    #     try:
-    #         WebDriverWait(self.driver, const.DELAY).until(
-    #             EC.presence_of_element_located((By.CLASS_NAME, '_btnOpenEpisodeList'))
-    #         )
-    #     except TimeoutException:
-    #         print("Episode #XXX did not load")
-
-    #     # Check if previous episode button is available
-    #     while len(self.driver.find_element(By.CLASS_NAME, '_btnOpenEpisodeList').text[1:]) > 0:
-    #         # Generate IDs for the episode and scrape image data
-    #         current_ep_url = self.driver.current_url
-    #         IDs = GenerateIDs(driver=self)
-    #         IDs.get_friendly_ID(current_ep_url)
-    #         IDs.generate_v4_UUID(current_ep_url)
-    #         src_list = self.get_img_urls()
-    #         self.scrape_image_data(src_list)
-    #         if len(self.driver.find_elements(By.CLASS_NAME, '_prevEpisode')) > 0:
-    #             # Find and click the previous button
-    #             try:
-    #                 WebDriverWait(self.driver, const.DELAY).until(
-    #                     EC.presence_of_element_located((By.CLASS_NAME, '_prevEpisode'))
-    #                 )
-    #             except TimeoutException:
-    #                 print("Previous episode button did not load")
-    #             prev_ep_btn = self.driver.find_element(By.CLASS_NAME, '_prevEpisode')
-    #             prev_ep_btn_link = prev_ep_btn.get_attribute('href')
-    #             self.driver.get(prev_ep_btn_link)
-    #         else:
-    #             break
-    #     self.driver.close()
-    #     self.driver.switch_to.window(self.driver.window_handles[0])
-    #     return
-
-    # def bypass_maturity_notice(self):
-    #     '''This method is used to bypass any maturity notice that arises for webtoons
-    #     that is either age restricted or depicts certain scenes'''
-    #     # Wait for the maturity notice to appear
-    #     try:
-    #         WebDriverWait(self.driver, const.DELAY).until(
-    #             EC.presence_of_element_located((By.XPATH, '//*[@class="ly_adult"]'))
-    #         )
-    #         WebDriverWait(self.driver, const.DELAY).until(
-    #             EC.presence_of_element_located((By.CLASS_NAME, '_ok'))
-    #         )
-    #         notice_container = self.driver.find_element(By.XPATH, '//*[@class="ly_adult"]')
-    #         ok_btn = notice_container.find_element(By.CLASS_NAME, '_ok')
-    #         ok_btn.click()
-    #     except TimeoutException:
-    #         pass
-
-    # def get_img_urls(self):
-    #     '''This method returns a list of all the links to the location of each
-    #     individual image panel'''
-    #     # Get all image links
-    #     image_container = self.driver.find_element(By.ID, '_imageList')
-    #     all_images = image_container.find_elements(By.TAG_NAME, 'img')
-    #     src_list = []
-    #     for img in all_images:
-    #         src_list.append(img.get_attribute('src'))
-    #     return src_list
-
-    # def scrape_image_data(self, src_list):
-    #     '''This method uses the FuturesSession() class to make asynchronous get
-    #     requests to all the links scraped from the get_img_urls method. After
-    #     making the get request, the response is stored in a future object. The
-    #     method iterates through all the future objects to collect the image data
-    #     using the Pillow and io modules. The images are saved in their appropriate
-    #     folders in the raw_data directory'''
-    #     with FuturesSession(executor=ThreadPoolExecutor(max_workers=50)) as session:
-    #         futures = [session.get(src, headers={'referer': src}) for src in src_list]
-    #         img_counter = 1
-    #         for future in futures:
-    #             resp = future.result()
-    #             if resp.status_code == 200:
-    #                 current_ep_url = self.driver.current_url
-    #                 # If the site loads up successfuly with status code 200, save the image
-    #                 image = Image.open(BytesIO(resp.content))
-    #                 if image.mode != 'RGB':
-    #                     image = image.convert('RGB')
-    #                 else:
-    #                     pass
-    #                 webtoon_ID = current_ep_url.split("/")[5]
-    #                 with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'r') as f:
-    #                     dict_of_friendly_ID = json.load(f)
-    #                     episode_ID = dict_of_friendly_ID[current_ep_url]
-    #                 path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_ID}/{episode_ID}/images/{episode_ID}_{img_counter}'
-    #                 img_counter += 1
-    #                 # Open a file using the path generated and save the image as a JPEG file
-    #                 with open(path, "wb") as f:
-    #                     image.save(f, "JPEG")
-    #             else:
-    #                 print(f"Image site did not load for {episode_ID}")
+        for ep_url, img_srcs in img_src_lists.items():
+            try:
+                with FuturesSession(executor=ThreadPoolExecutor(max_workers=50)) as session:
+                    futures = [session.get(src, headers={'referer': src}) for src in img_srcs]
+                    img_counter = 1
+                    for future in futures:
+                        data = future.result()
+                        if data.status_code == 200:
+                            image = Image.open(BytesIO(data.content))
+                            if image.mode != 'RGB':
+                                image = image.convert('RGB')
+                            else:
+                                pass
+                            webtoon_ID = ep_url.split("/")[5]
+                            with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'r') as f:
+                                dict_of_friendly_ID = json.load(f)
+                                episode_ID = dict_of_friendly_ID[ep_url]
+                            path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_ID}/{episode_ID}/images/{episode_ID}_{img_counter}'
+                            with open(path, "wb") as f:
+                                image.save(f, 'JPEG')
+                            img_counter += 1
+                        else:
+                            pass
+            except Exception as e:
+                print(e)

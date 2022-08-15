@@ -142,9 +142,10 @@ class Webtoon(webdriver.Chrome):
                 tasks = []
                 for webtoon_url in webtoon_list:
                     info = GetDetails(driver=self)
-                    task = asyncio.ensure_future(info.get_basic_info(session, webtoon_url))
+                    task = asyncio.ensure_future(
+                        info.get_basic_info(session, webtoon_url))
                     tasks.append(task)
-                
+
                 await asyncio.gather(*tasks)
 
     async def get_episode_list(self):
@@ -158,39 +159,40 @@ class Webtoon(webdriver.Chrome):
             dict_of_webtoon_links = json.load(f)
 
         for webtoon_list in dict_of_webtoon_links.values():
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
                 tasks1 = []
                 for webtoon_url in webtoon_list:
                     get_all_eps = ScrapeImages(driver=self)
-                    task1 = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
+                    task1 = asyncio.ensure_future(
+                        get_all_eps.get_all_episode_urls(session, webtoon_url))
                     tasks1.append(task1)
-                
+
                 await asyncio.gather(*tasks1)
 
     async def generate_IDs_and_scrape_img_urls(self):
-        ep_files_path = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/episode_list.json'
-        episode_files = glob.glob(ep_files_path)
+        ep_file_paths = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/episode_list.json'
+        episode_files = glob.glob(ep_file_paths)
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
             tasks2 = []
             for file in episode_files:
                 img_urls = ScrapeImages(driver=self)
-                task2 = asyncio.ensure_future(img_urls.generate_IDs_and_get_img_urls(session, file))
+                task2 = asyncio.ensure_future(
+                    img_urls.generate_IDs_and_get_img_urls(session, file))
                 tasks2.append(task2)
 
             await asyncio.gather(*tasks2)
 
+    async def scrape_images(self):
+        img_src_paths = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/img_src_list.json'
+        img_srcs = glob.glob(img_src_paths)
 
-    # async def scrape_image_urls(self):
-    #     webtoon_dir = '/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/'
-    #     episode_files = glob.glob(webtoon_dir)
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+            tasks3 = []
+            for srcs in img_srcs:
+                imgs = ScrapeImages(driver=self)
+                task3 = asyncio.ensure_future(
+                    imgs.generate_IDs_and_get_img_urls(session, srcs))
+                tasks3.append(task3)
 
-    #     for ep_list in all_ep_list:
-    #         async with aiohttp.ClientSession() as session:
-    #             tasks2 = []
-    #             for ep_url in ep_list:
-    #                 IDs_and_imgs = ScrapeImages(driver=self)
-    #                 task2 = asyncio.ensure_future(IDs_and_imgs.generate_IDs_and_get_img_urls(session, ep_url))
-    #                 tasks2.append(task2)
-
-    #             await asyncio.gather(*tasks2)
+            await asyncio.gather(*tasks3)
