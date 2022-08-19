@@ -200,11 +200,12 @@ class ScrapeImages:
             except Exception as e:
                 print(ep_url, 'hit the following error: ', e)
 
-    def download_all_images(self, srcs):
+    async def download_all_images(self, srcs):
         with open(srcs, 'r') as f:
             img_src_lists = json.load(f)
 
         for ep_url, img_srcs in img_src_lists.items():
+            print(ep_url)
             try:
                 with FuturesSession(executor=ThreadPoolExecutor(max_workers=50)) as session:
                     futures = [session.get(src, headers={'referer': src}) for src in img_srcs]

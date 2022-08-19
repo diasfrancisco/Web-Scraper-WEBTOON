@@ -1,5 +1,9 @@
 import os
 import json
+from sqlite3 import DatabaseError
+import psycopg2
+import sys
+import boto3
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -167,3 +171,25 @@ class GetWebtoonLinks:
             else:
                 current_genre_urls.append(webtoon_url)
         return current_genre_urls
+
+    def upload_files_to_RDS(self):
+        rds_client = boto3.client('rds')
+
+        conn = None
+
+        try:
+            conn = psycopg2.connect(
+                host=const.ENDPOINT,
+                database=const.DBNAME,
+                user=const.USER,
+                password=const.PASSWORD,
+                sslrootcert=const.SSLCERTIFICATE
+            )
+            cur = conn.cursor()
+            cur.execute('SELECT version()')
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as e:
+            print("Could not connect to the database due to the following error: ", e)
+        finally:
+            if conn is not None:
+                conn.close()

@@ -60,6 +60,7 @@ class Webtoon(webdriver.Chrome):
         '''
         # Load the base url
         self.get(const.BASE_URL)
+        return self.current_url
 
     def bypass_age_gate(self):
         '''
@@ -125,6 +126,7 @@ class Webtoon(webdriver.Chrome):
         genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
+        genres_and_webtoon_urls.upload_files_to_RDS()
 
     async def get_webtoon_info(self):
         '''
@@ -187,12 +189,11 @@ class Webtoon(webdriver.Chrome):
         img_src_paths = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/img_src_list.json'
         img_srcs = glob.glob(img_src_paths)
 
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
-            tasks3 = []
-            for srcs in img_srcs:
-                imgs = ScrapeImages(driver=self)
-                task3 = asyncio.ensure_future(
-                    imgs.generate_IDs_and_get_img_urls(session, srcs))
-                tasks3.append(task3)
+        tasks3 = []
+        for srcs in img_srcs:
+            imgs = ScrapeImages(driver=self)
+            task3 = asyncio.ensure_future(
+                imgs.download_all_images(srcs))
+            tasks3.append(task3)
 
-            await asyncio.gather(*tasks3)
+        await asyncio.gather(*tasks3)

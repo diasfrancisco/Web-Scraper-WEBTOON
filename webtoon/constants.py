@@ -14,6 +14,7 @@ GENRES_AND_WEBTOON_URLS_DIR_PATH = '/home/cisco/GitLocal/Web-Scraper/raw_data/ge
 ALL_WEBTOONS_DIR_PATH = '/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons'
 IDS_DIR_PATH = '/home/cisco/GitLocal/Web-Scraper/raw_data/all_IDs'
 
+# User agent cycling
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
     'Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2919.83 Safari/537.36'
@@ -34,3 +35,12 @@ USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
     'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
 ]
+
+# PostgreSQL on RDS parameters
+ENDPOINT = 'webtoon-info-database.cedwxzmw4vkk.eu-west-2.rds.amazonaws.com'
+PORT = '5432'
+USER = 'diasfrancisco'
+PASSWORD = 'winfopass'
+REGION = 'eu-west-2c'
+DBNAME = 'WebtoonInfo'
+SSLCERTIFICATE = '/home/cisco/GitLocal/Web-Scraper/webtoon/certs/eu-west-2-bundle.pem'
