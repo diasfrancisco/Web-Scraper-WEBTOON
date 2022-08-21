@@ -40,7 +40,8 @@ USER_AGENTS = [
 ENDPOINT = 'webtoon-info-database.cedwxzmw4vkk.eu-west-2.rds.amazonaws.com'
 PORT = '5432'
 USER = 'diasfrancisco'
-PASSWORD = 'winfopass'
+with open('webtoon/db_password.txt', 'r') as f:
+    PASSWORD = str(f.read())
 REGION = 'eu-west-2c'
 DBNAME = 'WebtoonInfo'
 SSLCERTIFICATE = '/home/cisco/GitLocal/Web-Scraper/webtoon/certs/eu-west-2-bundle.pem'

@@ -25,7 +25,7 @@ class Webtoon(webdriver.Chrome):
     described in selenium
     '''
 
-    def __init__(self, executable_path=r"/usr/local/bin", collapse=False):
+    def __init__(self, executable_path=r"/usr/local/bin", collapse=False, storage=None):
         '''
         Initilises the class with the necessary attributes
 
@@ -41,6 +41,7 @@ class Webtoon(webdriver.Chrome):
         # Initialise the navigation class
         self.executable_path = executable_path
         self.collapse = collapse
+        self.storage = storage
         os.environ['PATH'] += self.executable_path
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
@@ -53,6 +54,26 @@ class Webtoon(webdriver.Chrome):
         # Exit the webpage
         if self.collapse:
             return super().__exit__(*args)
+
+    def set_storage_location(self):
+        while True:
+            try:
+                data_storage_location = int(input("Press [1] to download data locally, [2] to upload data to RDS or [3] for both: "))
+            except ValueError:
+                print('Sorry, that was not a valid input. Please try again')
+                continue
+            else:
+                if data_storage_location not in (1, 2, 3):
+                    print('Sorry, that was not an option. Please try again')
+                elif data_storage_location == 1:
+                    self.storage = 'Local'
+                    break
+                elif data_storage_location == 2:
+                    self.storage = 'RDS'
+                    break
+                elif data_storage_location == 3:
+                    self.storage = 'Both'
+                    break
 
     def get_main_page(self):
         '''
@@ -126,7 +147,13 @@ class Webtoon(webdriver.Chrome):
         genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
-        genres_and_webtoon_urls.upload_files_to_RDS()
+        if self.storage == 'Local':
+            genres_and_webtoon_urls.download_data_locally()
+        elif self.storage == 'RDS':
+            genres_and_webtoon_urls.upload_data_to_RDS()
+        else:
+            genres_and_webtoon_urls.download_data_locally()
+            genres_and_webtoon_urls.upload_data_to_RDS()
 
     async def get_webtoon_info(self):
         '''

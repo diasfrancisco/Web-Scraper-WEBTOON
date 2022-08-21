@@ -1,8 +1,6 @@
 import os
 import json
-from sqlite3 import DatabaseError
 import psycopg2
-import sys
 import boto3
 
 from selenium.webdriver.common.by import By
@@ -30,6 +28,8 @@ class GetWebtoonLinks:
         about the genres
         '''
         self.driver = driver
+        self.genre_list = []
+        self.dict_of_webtoon_urls = {}
         self._g_list = []
 
     def get_genres(self):
@@ -52,27 +52,15 @@ class GetWebtoonLinks:
         main_genres = self.driver.find_element(By.XPATH, '//*[@class="snb _genre"]')
         main_genre_lis = main_genres.find_elements(By.TAG_NAME, 'li')
 
-        # Create file if it doesn't already exist and add an empty list to it
-        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json'):
-            pass
-        else:
-            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'w') as f:
-                json.dump([], f)
-
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'r') as f:
-            genre_list = json.load(f)
-
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'w') as f:
-            # Will be used for display purposes
-            for li_1 in main_genre_lis:
-                main_genre_name = li_1.find_element(By.TAG_NAME, 'a')
-                if main_genre_name.get_attribute('class') == '':
-                    continue
-                elif main_genre_name.text in genre_list:
-                    continue
-                else:
-                    genre_list.append(main_genre_name.text)
-            json.dump(genre_list, f)
+        # Will be used for display purposes
+        for li_1 in main_genre_lis:
+            main_genre_name = li_1.find_element(By.TAG_NAME, 'a')
+            if main_genre_name.get_attribute('class') == '':
+                continue
+            elif main_genre_name.text in self.genre_list:
+                continue
+            else:
+                self.genre_list.append(main_genre_name.text)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in main_genre_lis:
@@ -88,18 +76,13 @@ class GetWebtoonLinks:
 
         other_genres = self.driver.find_element(By.XPATH, '//*[@class="ly_lst_genre as_genre"]')
         other_genre_lis = other_genres.find_elements(By.TAG_NAME, 'li')
-        
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'r') as f:
-            genre_list = json.load(f)
 
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'w') as f:
-            for li_2 in other_genre_lis:
-                other_genre_name = li_2.find_element(By.TAG_NAME, 'a')
-                if other_genre_name.text in genre_list:
-                    continue
-                else:
-                    genre_list.append(other_genre_name.text)
-            json.dump(genre_list, f)
+        for li_2 in other_genre_lis:
+            other_genre_name = li_2.find_element(By.TAG_NAME, 'a')
+            if other_genre_name.text in self.genre_list:
+                continue
+            else:
+                self.genre_list.append(other_genre_name.text)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in other_genre_lis:
@@ -120,40 +103,24 @@ class GetWebtoonLinks:
         except TimeoutException:
             print("Webtoon container did not load")
 
-        # Create file if it doesn't already exist and add an empty list to it
-        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json'):
-            pass
-        else:
-            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
-                json.dump({}, f)
-
         genre_container = self.driver.find_element(
             By.XPATH, '//*[@class="card_wrap genre"]'
         )
 
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:
-            dict_of_webtoon_links = json.load(f)
-
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
-            for genre in self._g_list:
-                # If not a genre, add to dictionary
-                try:
-                    current_genre_urls = dict_of_webtoon_links[genre]
-                    pass
-                except KeyError:
-                    dict_of_webtoon_links[genre] = []
-            json.dump(dict_of_webtoon_links, f, indent=4)
-
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
-            for gen in self._g_list:
-                current_genre_urls = dict_of_webtoon_links[gen]
-                webtoon_container = genre_container.find_element(
-                    By.XPATH, f'//h2[@data-genre="{gen}"]/following-sibling::ul'
-                )
-                webtoons = webtoon_container.find_elements(By.TAG_NAME, 'li')
-                updated_genre_urls = self.get_all_webtoon_urls(webtoons, current_genre_urls)
-                dict_of_webtoon_links[gen] = updated_genre_urls
-            json.dump(dict_of_webtoon_links, f, indent=4)
+        for genre in self._g_list:
+            # If not a genre, add to dictionary
+            try:
+                current_genre_urls = self.dict_of_webtoon_urls[genre]
+                pass
+            except KeyError:
+                self.dict_of_webtoon_urls[genre] = []
+            current_genre_urls = self.dict_of_webtoon_urls[genre]
+            webtoon_container = genre_container.find_element(
+                By.XPATH, f'//h2[@data-genre="{genre}"]/following-sibling::ul'
+            )
+            webtoons = webtoon_container.find_elements(By.TAG_NAME, 'li')
+            updated_genre_urls = self.get_all_webtoon_urls(webtoons, current_genre_urls)
+            self.dict_of_webtoon_urls[genre] = updated_genre_urls
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
         '''
@@ -172,9 +139,21 @@ class GetWebtoonLinks:
                 current_genre_urls.append(webtoon_url)
         return current_genre_urls
 
-    def upload_files_to_RDS(self):
-        rds_client = boto3.client('rds')
+    def download_data_locally(self):
+        # Create file if it doesn't already exist and add an empty list to it
+        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json'):
+            pass
+        else:
+            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'w') as f:
+                json.dump(self.genre_list, f, indent=4)
 
+        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json'):
+            pass
+        else:
+            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
+                json.dump(self.dict_of_webtoon_urls, f, indent=4)
+
+    def upload_data_to_RDS(self):
         conn = None
 
         try:
@@ -186,7 +165,36 @@ class GetWebtoonLinks:
                 sslrootcert=const.SSLCERTIFICATE
             )
             cur = conn.cursor()
-            cur.execute('SELECT version()')
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS genres (
+                    id SERIAL PRIMARY KEY,
+                    genre VARCHAR(50) NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS webtoonurls (
+                    id SERIAL PRIMARY KEY,
+                    genre VARCHAR(50) NOT NULL,
+                    webtoon_url VARCHAR(200)
+                );
+                '''
+            )
+            for genre in self.genre_list:
+                cur.execute(
+                    f'''
+                    INSERT INTO genres (id, genre)
+                    VALUES (DEFAULT, '{genre}');
+                    '''
+                )
+            for current_genre, url_list in self.dict_of_webtoon_urls.items():
+                for url in url_list:
+                    cur.execute(
+                        f'''
+                        INSERT INTO webtoonurls (id, genre, webtoon_url)
+                        VALUES (DEFAULT, '{current_genre}', '{url}')
+                        '''
+                    )
+            conn.commit()
             cur.close()
         except (Exception, psycopg2.DatabaseError) as e:
             print("Could not connect to the database due to the following error: ", e)

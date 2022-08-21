@@ -7,18 +7,22 @@ from webtoon.to_WEBTOON import Webtoon
 def main():
     '''
     This is the main script file that runs the major methods in the Webtoon() class.
-    Its uses a 'with' block to make sure the scraper closes once complete
+    It runs the scraper using a context manager and displays the time each
+    method runs for.
     '''
-    with Webtoon(collapse=True) as bot:
+    with Webtoon(collapse=True, storage=None) as bot:
         print('--------------------------------- START --------------------------------')
+        print()
+
         t0 = time.time()
+        bot.set_storage_location()
         bot.get_main_page()
         bot.bypass_age_gate()
         bot.load_and_accept_cookies()
+        print(f'Loaded WEBTOON in {time.time() - t0} seconds')
         bot.create_main_dirs()
         t1 = time.time()
         bot.scrape_genres_and_webtoon_urls()
-        print()
         print(f'Completed genre and webtoon url collection in {time.time() - t1} seconds')
         # t2 = time.time()
         # asyncio.run(bot.get_webtoon_info())
@@ -32,6 +36,7 @@ def main():
         # t5 = time.time()
         # asyncio.run(bot.scrape_images())
         # print(f'Scraped all images in {time.time() - t5}')
+        
         print()
         print('------------------------------ Total time ------------------------------')
         print(f'                       {time.time() - t0} seconds')

@@ -3,3 +3,4 @@ tests/
 logging/
 webtoon/__pycache__/
 _test.ipynb
+webtoon/db_password.txt
