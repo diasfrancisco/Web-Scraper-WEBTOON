@@ -17,7 +17,7 @@ def main():
         t0 = time.time()
         bot.set_storage_location()
         bot.get_main_page()
-        bot.bypass_age_gate()
+        # bot.bypass_age_gate()
         bot.load_and_accept_cookies()
         print(f'Loaded WEBTOON in {time.time() - t0} seconds')
         bot.create_main_dirs()

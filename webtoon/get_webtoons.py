@@ -1,7 +1,6 @@
 import os
 import json
 import psycopg2
-import boto3
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -9,6 +8,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from webtoon.data_storage import AWSPostgreSQLRDS
 import webtoon.constants as const
 
 
@@ -18,7 +18,7 @@ class GetWebtoonLinks:
     on WEBTOON
     '''
     # Initialise the link collection class
-    def __init__(self, driver:WebDriver):
+    def __init__(self, driver:WebDriver, storage_state):
         '''
         This dunder method initialises the attributes used in the global scope
         
@@ -28,6 +28,7 @@ class GetWebtoonLinks:
         about the genres
         '''
         self.driver = driver
+        self.storage = storage_state
         self.genre_list = []
         self.dict_of_webtoon_urls = {}
         self._g_list = []
@@ -38,6 +39,26 @@ class GetWebtoonLinks:
         add thems to a json file if they are not already present. It also adds to the
         self._g_list attribute all the data-genre attributes of all genres
         '''
+        # Read in genre and webtoon url data
+        read_data = AWSPostgreSQLRDS()
+        genre_data = read_data.read_RDS_data(table_name='genres', columns='genre')
+        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url')
+
+        # Save data to attributes
+        self.genre_list = [r[0] for r in genre_data]
+        for r in webtoon_url_data:
+            # If not a genre, add to dictionary
+            try:
+                current_genre_urls = self.dict_of_webtoon_urls[r[0]]
+                pass
+            except KeyError:
+                self.dict_of_webtoon_urls[r[0]] = []
+            current_genre_urls = self.dict_of_webtoon_urls[r[0]]
+            if r[1] not in current_genre_urls:
+                current_genre_urls.append(r[1])
+            else:
+                continue
+
         self.driver.find_element(By.XPATH, '//*[@class="NPI=a:genre,g:en_en"]').click()
 
         # Wait for the main genre element to appear
@@ -52,6 +73,8 @@ class GetWebtoonLinks:
         main_genres = self.driver.find_element(By.XPATH, '//*[@class="snb _genre"]')
         main_genre_lis = main_genres.find_elements(By.TAG_NAME, 'li')
 
+        insert_genre = AWSPostgreSQLRDS()
+
         # Will be used for display purposes
         for li_1 in main_genre_lis:
             main_genre_name = li_1.find_element(By.TAG_NAME, 'a')
@@ -60,7 +83,11 @@ class GetWebtoonLinks:
             elif main_genre_name.text in self.genre_list:
                 continue
             else:
-                self.genre_list.append(main_genre_name.text)
+                my_insert_query = f'''
+                                    INSERT INTO genres (id, genre)
+                                    VALUES (DEFAULT, {str(main_genre_name.text)});
+                                    '''
+                insert_genre.insert_query(self, query=my_insert_query)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in main_genre_lis:
@@ -82,7 +109,11 @@ class GetWebtoonLinks:
             if other_genre_name.text in self.genre_list:
                 continue
             else:
-                self.genre_list.append(other_genre_name.text)
+                my_insert_query = f'''
+                                    INSERT INTO genres (id, genre)
+                                    VALUES (DEFAULT, {str(other_genre_name.text)});
+                                    '''
+                insert_genre.insert_query(self, query=my_insert_query)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in other_genre_lis:
@@ -107,6 +138,8 @@ class GetWebtoonLinks:
             By.XPATH, '//*[@class="card_wrap genre"]'
         )
 
+        insert_webtoons = AWSPostgreSQLRDS()
+
         for genre in self._g_list:
             # If not a genre, add to dictionary
             try:
@@ -120,7 +153,15 @@ class GetWebtoonLinks:
             )
             webtoons = webtoon_container.find_elements(By.TAG_NAME, 'li')
             updated_genre_urls = self.get_all_webtoon_urls(webtoons, current_genre_urls)
-            self.dict_of_webtoon_urls[genre] = updated_genre_urls
+            if updated_genre_urls:
+                continue
+            else:
+                for url in updated_genre_urls:
+                    my_insert_query = f'''
+                                        INSERT INTO webtoonurls (id, genre, webtoon_url)
+                                        VALUES (DEFAULT, '{genre}', '{url}');
+                                        '''
+                    insert_webtoons.insert_query(self, query=my_insert_query)
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
         '''
@@ -128,76 +169,14 @@ class GetWebtoonLinks:
         every webtoon to see if it is present in the current dictionary. If it is not, 
         it will append to it
         '''
+        new_webtoons = []
         for webtoon in webtoons:
             # For every li tag, get the link from the 'href' attribute and
             # append this to a list
             link_tag = webtoon.find_element(By.TAG_NAME, 'a')
             webtoon_url = link_tag.get_attribute('href')
-            if webtoon_url in current_genre_urls:
-                continue
+            if webtoon_url not in current_genre_urls:
+                new_webtoons.append(webtoon_url)
             else:
-                current_genre_urls.append(webtoon_url)
-        return current_genre_urls
-
-    def download_data_locally(self):
-        # Create file if it doesn't already exist and add an empty list to it
-        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json'):
-            pass
-        else:
-            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json', 'w') as f:
-                json.dump(self.genre_list, f, indent=4)
-
-        if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json'):
-            pass
-        else:
-            with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'w') as f:
-                json.dump(self.dict_of_webtoon_urls, f, indent=4)
-
-    def upload_data_to_RDS(self):
-        conn = None
-
-        try:
-            conn = psycopg2.connect(
-                host=const.ENDPOINT,
-                database=const.DBNAME,
-                user=const.USER,
-                password=const.PASSWORD,
-                sslrootcert=const.SSLCERTIFICATE
-            )
-            cur = conn.cursor()
-            cur.execute(
-                '''
-                CREATE TABLE IF NOT EXISTS genres (
-                    id SERIAL PRIMARY KEY,
-                    genre VARCHAR(50) NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS webtoonurls (
-                    id SERIAL PRIMARY KEY,
-                    genre VARCHAR(50) NOT NULL,
-                    webtoon_url VARCHAR(200)
-                );
-                '''
-            )
-            for genre in self.genre_list:
-                cur.execute(
-                    f'''
-                    INSERT INTO genres (id, genre)
-                    VALUES (DEFAULT, '{genre}');
-                    '''
-                )
-            for current_genre, url_list in self.dict_of_webtoon_urls.items():
-                for url in url_list:
-                    cur.execute(
-                        f'''
-                        INSERT INTO webtoonurls (id, genre, webtoon_url)
-                        VALUES (DEFAULT, '{current_genre}', '{url}')
-                        '''
-                    )
-            conn.commit()
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as e:
-            print("Could not connect to the database due to the following error: ", e)
-        finally:
-            if conn is not None:
-                conn.close()
+                continue
+        return new_webtoons

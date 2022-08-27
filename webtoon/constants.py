@@ -1,5 +1,5 @@
 # Load main page
-BASE_URL = 'https://www.webtoons.com/en/gdpr/ageGate'
+BASE_URL = 'https://www.webtoons.com/en/'
 
 # Bypass age gate
 DOB_DAY = "24"

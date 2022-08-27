@@ -1,9 +1,11 @@
+from asyncore import read
 import os
 import time
 import json
 import glob
 import asyncio
 import aiohttp
+import psycopg2
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -16,6 +18,7 @@ from webtoon.get_webtoons import GetWebtoonLinks
 from webtoon.single_webtoon import GetDetails
 from webtoon.create_dirs import CreateDirs
 from webtoon.single_episode import ScrapeImages
+from webtoon.data_storage import AWSPostgreSQLRDS
 
 
 class Webtoon(webdriver.Chrome):
@@ -38,11 +41,12 @@ class Webtoon(webdriver.Chrome):
         The webdriver is also set to run in headless mode using the
         webdriver.ChromeOptions() class
         '''
-        # Initialise the navigation class
+        # Initialise global attributes
         self.executable_path = executable_path
         self.collapse = collapse
         self.storage = storage
         os.environ['PATH'] += self.executable_path
+        # Create an instance of the webdriver using the chrome options specified
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         super(Webtoon, self).__init__(options=options)
@@ -56,9 +60,12 @@ class Webtoon(webdriver.Chrome):
             return super().__exit__(*args)
 
     def set_storage_location(self):
+        '''
+        Sets the storage location based on the user's choice
+        '''
         while True:
             try:
-                data_storage_location = int(input("Press [1] to download data locally, [2] to upload data to RDS or [3] for both: "))
+                data_storage_location = int(input("Enter [1] to download data locally, [2] to upload data to RDS or [3] for both: "))
             except ValueError:
                 print('Sorry, that was not a valid input. Please try again')
                 continue
@@ -77,7 +84,7 @@ class Webtoon(webdriver.Chrome):
 
     def get_main_page(self):
         '''
-        Gets the main page of WEBTOON
+        Gets WEBTOON's main page
         '''
         # Load the base url
         self.get(const.BASE_URL)
@@ -85,7 +92,7 @@ class Webtoon(webdriver.Chrome):
 
     def bypass_age_gate(self):
         '''
-        This method is used to bypass the Age Verification page that loads
+        Bypasses the Age Verification page
         '''
         # Enter the day
         day_path = self.find_element(By.XPATH, '//*[@id="_day"]')
@@ -113,7 +120,7 @@ class Webtoon(webdriver.Chrome):
 
     def load_and_accept_cookies(self):
         '''
-        This method waits for the cookies to appear and accepts them
+        Waits for the cookies to appear and accepts them
         '''
         try:
             # Wait until the cookies frame appear and accept them
@@ -131,29 +138,21 @@ class Webtoon(webdriver.Chrome):
 
     def create_main_dirs(self):
         '''
-        This method creates an instance of the CreateDirs() class and runs the
-        static_dirs method to create the necessary, base directories to be used
-        to store all raw data
+        Create the necessary, base directories to be used to store all raw data
         '''
-        main_dirs = CreateDirs()
-        main_dirs.static_dirs()
+        if self.storage == 'RDS':
+            pass
+        elif self.storage == 'Local' or 'Both':
+            main_dirs = CreateDirs()
+            main_dirs.static_dirs()
 
     def scrape_genres_and_webtoon_urls(self):
         '''
-        This method creates an instance of the GetWebtoonLinks() class and
-        runs the get_genres and get_webtoon_list methods to scrape all the genres
-        currently present and the complete list of webtoons present
+        Scrapes all the genres and compiles a list of all webtoons available
         '''
-        genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
+        genres_and_webtoon_urls = GetWebtoonLinks(driver=self, storage_state=self.storage)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
-        if self.storage == 'Local':
-            genres_and_webtoon_urls.download_data_locally()
-        elif self.storage == 'RDS':
-            genres_and_webtoon_urls.upload_data_to_RDS()
-        else:
-            genres_and_webtoon_urls.download_data_locally()
-            genres_and_webtoon_urls.upload_data_to_RDS()
 
     async def get_webtoon_info(self):
         '''
@@ -163,14 +162,14 @@ class Webtoon(webdriver.Chrome):
         get_basic_info method via aiohttp
         on them
         '''
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:
-            dict_of_webtoon_links = json.load(f)
+        read_data = AWSPostgreSQLRDS()
+        dict_of_webtoon_links = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url')
 
         for webtoon_list in dict_of_webtoon_links.values():
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for webtoon_url in webtoon_list:
-                    info = GetDetails(driver=self)
+                    info = GetDetails(driver=self, storage_state=self.storage)
                     task = asyncio.ensure_future(
                         info.get_basic_info(session, webtoon_url))
                     tasks.append(task)
@@ -191,7 +190,7 @@ class Webtoon(webdriver.Chrome):
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
                 tasks1 = []
                 for webtoon_url in webtoon_list:
-                    get_all_eps = ScrapeImages(driver=self)
+                    get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
                     task1 = asyncio.ensure_future(
                         get_all_eps.get_all_episode_urls(session, webtoon_url))
                     tasks1.append(task1)
