@@ -184,7 +184,7 @@ class LocalDownload(AWSPostgreSQLRDS):
                 with open(const.ALL_WEBTOONS_DIR_PATH + f'/{r[0].split("/")[5]}/webtoon_info.json', 'w', encoding='utf-8') as f:
                     json.dump(all_webtoon_info_dict, f, indent=4, ensure_ascii=False)
 
-    def download_episode_urls(self):
+    def download_episode_and_img_urls(self):
         webtoon_url_data = self.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
         webtoon_urls = [r[0] for r in webtoon_url_data]
 
@@ -199,8 +199,16 @@ class LocalDownload(AWSPostgreSQLRDS):
                 with open(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_url.split("/")[5]}/episode_list.json', 'w') as f:
                     json.dump(episode_urls, f, indent=4)
 
-    def download_image_urls(self):
-        pass
+            for episode_url in episode_urls:
+                img_url_data = self.read_RDS_data(table_name='imgurls', columns='img_url', search=True, col_search='episode_url', col_search_val=episode_url)
+                img_urls = [r[0] for r in img_url_data]
+
+                # Create file if it doesn't already exist
+                if os.path.isfile(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_url.split("/")[5]}/img_list.json'):
+                    pass
+                else:
+                    with open(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_url.split("/")[5]}/img_list.json', 'w') as f:
+                        json.dump(img_urls, f, indent=4)
 
     def download_all_images(self):
         pass

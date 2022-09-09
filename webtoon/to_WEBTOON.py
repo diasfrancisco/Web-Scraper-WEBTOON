@@ -201,19 +201,6 @@ class Webtoon(webdriver.Chrome):
             local_storage = LocalDownload()
             local_storage.download_webtoon_info()
 
-    async def async_get_episode_urls(self, webtoon_url_chunk, ep_table_webtoon_urls):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
-            episode_urls_tasks = []
-            for webtoon_url in webtoon_url_chunk:
-                if webtoon_url in ep_table_webtoon_urls:
-                    continue
-                else:
-                    get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
-                    episode_task = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
-                    episode_urls_tasks.append(episode_task)
-
-            await asyncio.gather(*episode_urls_tasks)
-
     async def get_episode_list(self):
         '''
         Asynchronously gathers a list of all episodes currently available for each webtoon
@@ -265,7 +252,7 @@ class Webtoon(webdriver.Chrome):
             pass
         else:
             local_storage = LocalDownload()
-            local_storage.download_episode_urls()
+            local_storage.download_episode_and_img_urls()
 
     async def generate_IDs_and_scrape_img_urls(self):
         read_data = AWSPostgreSQLRDS()
