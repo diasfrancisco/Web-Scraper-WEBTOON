@@ -1,11 +1,10 @@
-from asyncore import read
 import os
+from secrets import randbits
 import time
-import json
-import glob
+import random
+import platform
 import asyncio
 import aiohttp
-import psycopg2
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,7 +17,7 @@ from webtoon.get_webtoons import GetWebtoonLinks
 from webtoon.single_webtoon import GetDetails
 from webtoon.create_dirs import CreateDirs
 from webtoon.single_episode import ScrapeImages
-from webtoon.data_storage import AWSPostgreSQLRDS
+from webtoon.data_storage import AWSPostgreSQLRDS, LocalDownload
 
 
 class Webtoon(webdriver.Chrome):
@@ -84,7 +83,7 @@ class Webtoon(webdriver.Chrome):
 
     def get_main_page(self):
         '''
-        Gets WEBTOON's main page
+        Loads WEBTOON's main page
         '''
         # Load the base url
         self.get(const.BASE_URL)
@@ -138,7 +137,7 @@ class Webtoon(webdriver.Chrome):
 
     def create_main_dirs(self):
         '''
-        Create the necessary, base directories to be used to store all raw data
+        Creates the necessary, base directories to store all raw data
         '''
         if self.storage == 'RDS':
             pass
@@ -146,80 +145,156 @@ class Webtoon(webdriver.Chrome):
             main_dirs = CreateDirs()
             main_dirs.static_dirs()
 
+    def nordvpn(self):
+        version = platform.system()
+        if version == 'Linux' or version == 'Darwin':
+            command = 'nordvpn connect ' + random.choice(const.LINUX_COUNTRIES) + ' > /dev/null 2>&1'
+        else:
+            command = 'nordvpn -c -g \" '+ random.choice(const.LINUX_COUNTRIES) +' " > /dev/null 2>&1'
+        os.system(command)
+        time.sleep(10)
+
     def scrape_genres_and_webtoon_urls(self):
         '''
         Scrapes all the genres and compiles a list of all webtoons available
         '''
-        genres_and_webtoon_urls = GetWebtoonLinks(driver=self, storage_state=self.storage)
+        cloud_storage = AWSPostgreSQLRDS()
+        cloud_storage.create_tables()
+
+        genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
+        if self.storage == 'RDS':
+            pass
+        else:
+            local_storage = LocalDownload()
+            local_storage.download_genres()
+            local_storage.download_webtoon_urls()
 
     async def get_webtoon_info(self):
         '''
-        This method reads in a json file containing the urls of every webtoon
-        on WEBTOON. It loops through all the values from that dictionary and 
-        asynchrounously runs an instance of the GetDetails() class running the
-        get_basic_info method via aiohttp
-        on them
+        Asynchronously gathers the title, author, genre, views, subscribers and
+        rating for each individual webtoon
         '''
         read_data = AWSPostgreSQLRDS()
-        dict_of_webtoon_links = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url')
+        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        webtoon_info_data = read_data.read_RDS_data(table_name='webtooninfo', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        
+        webtoon_urls = [r[0] for r in webtoon_url_data]
+        webtoon_info_urls = [r[0] for r in webtoon_info_data]
 
-        for webtoon_list in dict_of_webtoon_links.values():
-            async with aiohttp.ClientSession() as session:
-                tasks = []
-                for webtoon_url in webtoon_list:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=15)) as session:
+            info_tasks = []
+            for webtoon_url in webtoon_urls:
+                if webtoon_url in webtoon_info_urls:
+                    continue
+                else:
                     info = GetDetails(driver=self, storage_state=self.storage)
-                    task = asyncio.ensure_future(
-                        info.get_basic_info(session, webtoon_url))
-                    tasks.append(task)
+                    info_task = asyncio.ensure_future(info.get_basic_info(session, webtoon_url))
+                    info_tasks.append(info_task)
 
-                await asyncio.gather(*tasks)
+            await asyncio.gather(*info_tasks)
+
+        if self.storage == 'RDS':
+            pass
+        else:
+            local_storage = LocalDownload()
+            local_storage.download_webtoon_info()
+
+    async def async_get_episode_urls(self, webtoon_url_chunk, ep_table_webtoon_urls):
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+            episode_urls_tasks = []
+            for webtoon_url in webtoon_url_chunk:
+                if webtoon_url in ep_table_webtoon_urls:
+                    continue
+                else:
+                    get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
+                    episode_task = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
+                    episode_urls_tasks.append(episode_task)
+
+            await asyncio.gather(*episode_urls_tasks)
 
     async def get_episode_list(self):
         '''
-        This method reads in the json file containing the urls of every
-        webtoon available on WEBTOON. It then grabs each list from every genre
-        and from there every single webtoon. An instance of the ScrapeImages()
-        class is set and the loop_through_episodes method run for each one
+        Asynchronously gathers a list of all episodes currently available for each webtoon
         '''
-        with open(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/webtoon_urls.json', 'r') as f:
-            dict_of_webtoon_links = json.load(f)
+        read_data = AWSPostgreSQLRDS()
+        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        ep_table_webtoon_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
 
-        for webtoon_list in dict_of_webtoon_links.values():
-            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
-                tasks1 = []
-                for webtoon_url in webtoon_list:
-                    get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
-                    task1 = asyncio.ensure_future(
-                        get_all_eps.get_all_episode_urls(session, webtoon_url))
-                    tasks1.append(task1)
+        ep_table_webtoon_urls = [r[0] for r in ep_table_webtoon_url_data]
+        webtoon_urls = [r[0] for r in webtoon_url_data]
+        webtoon_url_chunks = [webtoon_urls[pos:pos + 15] for pos in range(0, len(webtoon_urls), 15)]
 
-                await asyncio.gather(*tasks1)
+        for webtoon_url_chunk in webtoon_url_chunks:
+            successul = False
+            while successul == False:
+                try:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+                        page_tasks = []
+                        for webtoon_url in webtoon_url_chunk:
+                            get_all_pages = ScrapeImages(driver=self, storage_state=self.storage)
+                            page_task = asyncio.ensure_future(get_all_pages.get_total_pages(session, webtoon_url))
+                            page_tasks.append(page_task)
+
+                        await asyncio.gather(*page_tasks)
+                        successul = True
+                except Exception:
+                    self.nordvpn()
+
+        for webtoon_url_chunk in webtoon_url_chunks:
+            successul = False
+            while successul == False:
+                try:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+                        episode_urls_tasks = []
+                        for webtoon_url in webtoon_url_chunk:
+                            if webtoon_url in ep_table_webtoon_urls:
+                                continue
+                            else:
+                                get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
+                                episode_task = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
+                                episode_urls_tasks.append(episode_task)
+
+                        await asyncio.gather(*episode_urls_tasks)
+                        successul = True
+                except Exception:
+                    self.nordvpn()
+        
+        if self.storage == 'RDS':
+            pass
+        else:
+            local_storage = LocalDownload()
+            local_storage.download_episode_urls()
 
     async def generate_IDs_and_scrape_img_urls(self):
-        ep_file_paths = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/episode_list.json'
-        episode_files = glob.glob(ep_file_paths)
+        read_data = AWSPostgreSQLRDS()
+        episode_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='episode_url', search=False, col_search=None, col_search_val=None)
 
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
-            tasks2 = []
-            for file in episode_files:
-                img_urls = ScrapeImages(driver=self)
-                task2 = asyncio.ensure_future(
-                    img_urls.generate_IDs_and_get_img_urls(session, file))
-                tasks2.append(task2)
+        episode_urls = [r[0] for r in episode_url_data]
+        episode_url_chunks = [episode_urls[pos:pos + 15] for pos in range(0, len(episode_urls), 15)]
 
-            await asyncio.gather(*tasks2)
+        for episode_url_chunk in episode_url_chunks:
+            successul = False
+            while successul == False:
+                try:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+                        img_tasks = []
+                        for episode_url in episode_url_chunk:
+                            img_urls = ScrapeImages(driver=self, storage_state=self.storage)
+                            img_task = asyncio.ensure_future(img_urls.generate_IDs_and_get_img_urls(session, episode_url))
+                            img_tasks.append(img_task)
+
+                        await asyncio.gather(*img_tasks)
+                        successul = True
+                except Exception:
+                    self.nordvpn()
 
     async def scrape_images(self):
-        img_src_paths = r'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/**/img_src_list.json'
-        img_srcs = glob.glob(img_src_paths)
+        read_data = AWSPostgreSQLRDS()
+        img_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
 
-        tasks3 = []
-        for srcs in img_srcs:
-            imgs = ScrapeImages(driver=self)
-            task3 = asyncio.ensure_future(
-                imgs.download_all_images(srcs))
-            tasks3.append(task3)
+        img_urls = [r[0] for r in img_url_data]
 
-        await asyncio.gather(*tasks3)
+        all_imgs = ScrapeImages()
+        all_imgs.download_all_images(img_urls)

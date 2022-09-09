@@ -1,7 +1,3 @@
-import os
-import json
-import psycopg2
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException
@@ -18,7 +14,7 @@ class GetWebtoonLinks:
     on WEBTOON
     '''
     # Initialise the link collection class
-    def __init__(self, driver:WebDriver, storage_state):
+    def __init__(self, driver:WebDriver):
         '''
         This dunder method initialises the attributes used in the global scope
         
@@ -28,21 +24,18 @@ class GetWebtoonLinks:
         about the genres
         '''
         self.driver = driver
-        self.storage = storage_state
         self.genre_list = []
         self.dict_of_webtoon_urls = {}
         self._g_list = []
 
     def get_genres(self):
         '''
-        This method loops through all the genres currently present on WEBTOON and
-        add thems to a json file if they are not already present. It also adds to the
-        self._g_list attribute all the data-genre attributes of all genres
+        Loops through all the genres present on WEBTOON and stores them to a database
         '''
         # Read in genre and webtoon url data
         read_data = AWSPostgreSQLRDS()
-        genre_data = read_data.read_RDS_data(table_name='genres', columns='genre')
-        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url')
+        genre_data = read_data.read_RDS_data(table_name='genres', columns='genre', search=False, col_search=None, col_search_val=None)
+        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url', search=False, col_search=None, col_search_val=None)
 
         # Save data to attributes
         self.genre_list = [r[0] for r in genre_data]
@@ -50,7 +43,6 @@ class GetWebtoonLinks:
             # If not a genre, add to dictionary
             try:
                 current_genre_urls = self.dict_of_webtoon_urls[r[0]]
-                pass
             except KeyError:
                 self.dict_of_webtoon_urls[r[0]] = []
             current_genre_urls = self.dict_of_webtoon_urls[r[0]]
@@ -85,9 +77,9 @@ class GetWebtoonLinks:
             else:
                 my_insert_query = f'''
                                     INSERT INTO genres (id, genre)
-                                    VALUES (DEFAULT, {str(main_genre_name.text)});
+                                    VALUES (DEFAULT, '{main_genre_name.text}');
                                     '''
-                insert_genre.insert_query(self, query=my_insert_query)
+                insert_genre.insert_query(query=my_insert_query)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in main_genre_lis:
@@ -111,9 +103,9 @@ class GetWebtoonLinks:
             else:
                 my_insert_query = f'''
                                     INSERT INTO genres (id, genre)
-                                    VALUES (DEFAULT, {str(other_genre_name.text)});
+                                    VALUES (DEFAULT, '{other_genre_name.text}');
                                     '''
-                insert_genre.insert_query(self, query=my_insert_query)
+                insert_genre.insert_query(query=my_insert_query)
         # Collect all the 'data-genre' attributes and save it to a
         # list to be used as a locator key
         for _ in other_genre_lis:
@@ -122,9 +114,8 @@ class GetWebtoonLinks:
 
     def get_webtoon_list(self):
         '''
-        This method is used to create a json file containing all the links to
-        every webtoon that currently exists on WEBTOON. It will gradually append to
-        the list as new entries are added
+        Gathers a list of all webtoons present in each individual genre and saves it
+        to a database
         '''
         # Wait for the container element to appear
         try:
@@ -153,7 +144,7 @@ class GetWebtoonLinks:
             )
             webtoons = webtoon_container.find_elements(By.TAG_NAME, 'li')
             updated_genre_urls = self.get_all_webtoon_urls(webtoons, current_genre_urls)
-            if updated_genre_urls:
+            if not updated_genre_urls:
                 continue
             else:
                 for url in updated_genre_urls:
@@ -161,13 +152,12 @@ class GetWebtoonLinks:
                                         INSERT INTO webtoonurls (id, genre, webtoon_url)
                                         VALUES (DEFAULT, '{genre}', '{url}');
                                         '''
-                    insert_webtoons.insert_query(self, query=my_insert_query)
+                    insert_webtoons.insert_query(query=my_insert_query)
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
         '''
-        This method is called within the get_webtoon_list method and loops through
-        every webtoon to see if it is present in the current dictionary. If it is not, 
-        it will append to it
+        Checks if the genres scraped are already present in the database. If they are
+        not present, it will return a list of missing webtoons
         '''
         new_webtoons = []
         for webtoon in webtoons:
