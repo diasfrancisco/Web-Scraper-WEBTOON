@@ -1,6 +1,8 @@
 import os
 import json
 import psycopg2
+import boto3
+from botocore.exceptions import ClientError
 
 import webtoon.constants as const
 
@@ -124,6 +126,19 @@ class AWSPostgreSQLRDS:
             if conn is not None:
                 conn.close()
 
+    def upload_images_to_S3(self, image, content_type, s3key, s3bucket):
+        # Connect to S3
+        s3 = boto3.client('s3', aws_access_key_id=const.ACCESS_KEY_ID, aws_secret_access_key=const.SECRET_ACCESS_KEY)
+        try:
+            key_result = s3.list_objects_v2(Bucket=s3bucket, Prefix=s3key)
+            if 'Contents' in key_result:
+                return
+            else:
+                s3.put_object(Body=image, Bucket=s3bucket, Key=s3key, ContentType=content_type)
+        except Exception as e:
+            print("S3 connection ran into the following error: ", e)
+
+
 class LocalDownload(AWSPostgreSQLRDS):
     def __init__(self):
         self.genre_list = []
@@ -210,5 +225,5 @@ class LocalDownload(AWSPostgreSQLRDS):
                     with open(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_url.split("/")[5]}/img_list.json', 'w') as f:
                         json.dump(img_urls, f, indent=4)
 
-    def download_all_images(self):
+    def locally_download_all_images(self):
         pass

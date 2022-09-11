@@ -47,3 +47,9 @@ with open('webtoon/db_password.txt', 'r') as f:
 REGION = 'eu-west-2c'
 DBNAME = 'WebtoonInfo'
 SSLCERTIFICATE = '/home/cisco/GitLocal/Web-Scraper/webtoon/certs/eu-west-2-bundle.pem'
+
+# S3 AWS parameters
+with open('webtoon/s3_access_key_id.txt', 'r') as s3id:
+    ACCESS_KEY_ID = str(s3id.read())
+with open('webtoon/s3_secret_access_key.txt', 'r') as s3key:
+    SECRET_ACCESS_KEY = str(s3key.read())

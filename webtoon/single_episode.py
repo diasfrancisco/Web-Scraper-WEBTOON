@@ -6,8 +6,6 @@ import asyncio
 import time
 from io import BytesIO
 from PIL import Image
-from requests_futures.sessions import FuturesSession
-from concurrent.futures import ThreadPoolExecutor
 
 from bs4 import BeautifulSoup
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -219,7 +217,7 @@ class ScrapeImages:
         img_tags = soup.find(id='_imageList').find_all('img')
 
         for img_tag in img_tags:
-            img_url = img_tag['src']
+            img_url = img_tag['data-url']
             if img_tag['alt'] == 'qrcode':
                 return
             else:
@@ -233,28 +231,16 @@ class ScrapeImages:
                 else:
                     continue
 
-    # async def download_all_images(self, img_urls):
-    #     try:
-    #         with FuturesSession(executor=ThreadPoolExecutor(max_workers=50)) as session:
-    #             futures = [session.get(img_url, headers={'referer': img_url}) for img_url in img_urls]
-    #             img_counter = 1
-    #             for future in futures:
-    #                 data = future.result()
-    #                 if data.status_code == 200:
-    #                     image = Image.open(BytesIO(data.content))
-    #                     if image.mode != 'RGB':
-    #                         image = image.convert('RGB')
-    #                     else:
-    #                         pass
-    #                     webtoon_ID = ep_url.split("/")[5]
-    #                     with open(const.IDS_DIR_PATH + '/friendly_IDs.json', 'r') as f:
-    #                         dict_of_friendly_ID = json.load(f)
-    #                         episode_ID = dict_of_friendly_ID[ep_url]
-    #                     path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_ID}/{episode_ID}/images/{episode_ID}_{img_counter}'
-    #                     with open(path, "wb") as f:
-    #                         image.save(f, 'JPEG')
-    #                     img_counter += 1
-    #                 else:
-    #                     pass
-    #     except Exception as e:
-    #         print(e)
+    async def download_all_images(self, session, img_url):
+        try:
+            async with session.get(img_url, headers={'referer': img_url}) as response:
+                assert response.status == 200
+                image = await response.read()
+                content_type = response.headers['content-type']
+                split_key = img_url.split('/')[4:6]
+                key = "-".join(split_key)
+
+                img_upload = AWSPostgreSQLRDS()
+                img_upload.upload_images_to_S3(image, content_type, s3key=key, s3bucket='webtoon-imgs')
+        except Exception as e:
+            print(e)

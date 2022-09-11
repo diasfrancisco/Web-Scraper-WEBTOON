@@ -4,3 +4,5 @@ logging/
 webtoon/__pycache__/
 _test.ipynb
 webtoon/db_password.txt
+webtoon/s3_access_key_id.txt
+webtoon/s3_secret_access_key.txt

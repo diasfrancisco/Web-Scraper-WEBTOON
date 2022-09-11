@@ -279,9 +279,23 @@ class Webtoon(webdriver.Chrome):
 
     async def scrape_images(self):
         read_data = AWSPostgreSQLRDS()
-        img_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        img_url_data = read_data.read_RDS_data(table_name='imgurls', columns='img_url', search=False, col_search=None, col_search_val=None)
 
         img_urls = [r[0] for r in img_url_data]
+        img_url_chunks = [img_urls[pos:pos + 15] for pos in range(0, len(img_urls), 15)]
 
-        all_imgs = ScrapeImages()
-        all_imgs.download_all_images(img_urls)
+        for img_url_chunk in img_url_chunks:
+            successul = False
+            while successul == False:
+                try:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector()) as session:
+                        img_tasks = []
+                        for img_url in img_url_chunk:
+                            all_imgs = ScrapeImages(driver=self, storage_state=self.storage)
+                            img_task = asyncio.ensure_future(all_imgs.download_all_images(session, img_url))
+                            img_tasks.append(img_task)
+
+                        await asyncio.gather(*img_tasks)
+                        successul = True
+                except Exception:
+                    self.nordvpn()
