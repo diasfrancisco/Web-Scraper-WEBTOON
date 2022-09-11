@@ -1,4 +1,3 @@
-from weakref import proxy
 from bs4 import BeautifulSoup
 from selenium.webdriver.remote.webdriver import WebDriver
 
@@ -8,27 +7,29 @@ from webtoon.data_storage import AWSPostgreSQLRDS
 
 
 class GetDetails:
-    '''
-    This class is used to get details on different webtoon attributes such as
-    title, author, genre, views, subscribers and ratings
-    '''
+    """This class is used to get details on different webtoon attributes such as
+    title, authors, genre, views, subscribers and ratings
+    """    
     def __init__(self, driver:WebDriver, storage_state):
-        '''
-        This method initialises the class with the necessary attributes
-        
-        --Attributes--
-        self.driver = sets the driver to self
-        '''
+        """Holds the attributes that are initialised with every instance of this class
+
+        Args:
+            driver (WebDriver): Passes in the webdriver being used in the main Webtoon
+            class
+            storage_state (str): Holds the storage option the user has chosen
+        """        
         self.driver = driver
         self.storage = storage_state
 
     async def get_basic_info(self, session, webtoon_url):
-        '''
-        Creates a dir for the webtoon being worked on. Then performs a GET request to
-        the webtoon_url using the headers provided. Using BeautifulSoup it parses the
-        html content to grab the genre, title, author, views, subscribers and rating,
-        and saves it to a json file
-        '''
+        """Performs a GET request to the webtoon url using the headers provided. Using
+        BeautifulSoup it parses the html content to grab the genre, title, authors, 
+        views, subscribers and rating
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            webtoon_url (str): The current webtoon url
+        """        
         if self.storage == 'RDS':
             pass
         else:

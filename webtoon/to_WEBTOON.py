@@ -1,5 +1,4 @@
 import os
-from secrets import randbits
 import time
 import random
 import platform
@@ -21,25 +20,24 @@ from webtoon.data_storage import AWSPostgreSQLRDS, LocalDownload
 
 
 class Webtoon(webdriver.Chrome):
-    '''
-    Main Webtoon class that contains the methods needed to scrape data from
-    Webtoon. It inherits form the webdriver.Chrome module to use the methods
-    described in selenium
-    '''
+    """Contains the methods needed to scrape data from Webtoon. It inherits form the
+    webdriver.Chrome module to create an instance of the web driver
+
+    Args:
+        webdriver (module): A module from selenium that provides all the Webdriver
+        implementations
+    """    
 
     def __init__(self, executable_path=r"/usr/local/bin", collapse=False, storage=None):
-        '''
-        Initilises the class with the necessary attributes
+        """Holds the attributes that are initialised with every instance of this class 
 
-        --Atributes--
-        self.executable_path = stores the path to the webdriver
-            - Adds the executable path to the PATH if not already present
-        self.collapse = boolean attribute that, on True, closes the browser
-        after running
-
-        The webdriver is also set to run in headless mode using the
-        webdriver.ChromeOptions() class
-        '''
+        Args:
+            executable_path (regexp, optional): Sets the path the webdriver in to be
+            located in. Defaults to r"/usr/local/bin".
+            collapse (bool, optional): A boolean value that determines if the webdriver
+            is closed upon completion. Defaults to False.
+            storage (str): Holds the storage option the user chooses. Defaults to None.
+        """        
         # Initialise global attributes
         self.executable_path = executable_path
         self.collapse = collapse
@@ -51,17 +49,18 @@ class Webtoon(webdriver.Chrome):
         super(Webtoon, self).__init__(options=options)
 
     def __exit__(self, *args):
-        '''
-        Closes the browser after completion
-        '''
+        """Closes the browser after completion
+
+        Returns:
+            __exit__: ends the script
+        """        
         # Exit the webpage
         if self.collapse:
             return super().__exit__(*args)
 
     def set_storage_location(self):
-        '''
-        Sets the storage location based on the user's choice
-        '''
+        """Sets the storage location based on the user's choice
+        """        
         while True:
             try:
                 data_storage_location = int(input("Enter [1] to download data locally, [2] to upload data to RDS or [3] for both: "))
@@ -82,17 +81,18 @@ class Webtoon(webdriver.Chrome):
                     break
 
     def get_main_page(self):
-        '''
-        Loads WEBTOON's main page
-        '''
+        """Loads WEBTOON's main page
+
+        Returns:
+            current_url (property): To be used for unittests
+        """        
         # Load the base url
         self.get(const.BASE_URL)
         return self.current_url
 
     def bypass_age_gate(self):
-        '''
-        Bypasses the Age Verification page
-        '''
+        """Bypasses the Age Verification page
+        """        
         # Enter the day
         day_path = self.find_element(By.XPATH, '//*[@id="_day"]')
         day_path.send_keys(const.DOB_DAY)
@@ -118,9 +118,8 @@ class Webtoon(webdriver.Chrome):
         ).click()
 
     def load_and_accept_cookies(self):
-        '''
-        Waits for the cookies to appear and accepts them
-        '''
+        """Waits for the cookies to load and accepts them
+        """        
         try:
             # Wait until the cookies frame appear and accept them
             WebDriverWait(
@@ -136,9 +135,8 @@ class Webtoon(webdriver.Chrome):
         accept_cookies_button.click()
 
     def create_main_dirs(self):
-        '''
-        Creates the necessary, base directories to store all raw data
-        '''
+        """Creates the necessary, base directories to store all raw data
+        """        
         if self.storage == 'RDS':
             pass
         elif self.storage == 'Local' or 'Both':
@@ -146,6 +144,8 @@ class Webtoon(webdriver.Chrome):
             main_dirs.static_dirs()
 
     def nordvpn(self):
+        """Randomly switches between various NordVPN servers when a rate limit is reached
+        """         
         version = platform.system()
         if version == 'Linux' or version == 'Darwin':
             command = 'nordvpn connect ' + random.choice(const.LINUX_COUNTRIES) + ' > /dev/null 2>&1'
@@ -155,9 +155,8 @@ class Webtoon(webdriver.Chrome):
         time.sleep(10)
 
     def scrape_genres_and_webtoon_urls(self):
-        '''
-        Scrapes all the genres and compiles a list of all webtoons available
-        '''
+        """Scrapes all the genres and compiles a list of all webtoons available
+        """        
         cloud_storage = AWSPostgreSQLRDS()
         cloud_storage.create_tables()
 
@@ -172,10 +171,9 @@ class Webtoon(webdriver.Chrome):
             local_storage.download_webtoon_urls()
 
     async def get_webtoon_info(self):
-        '''
-        Asynchronously gathers the title, author, genre, views, subscribers and
+        """Asynchronously gathers the title, author, genre, views, subscribers and
         rating for each individual webtoon
-        '''
+        """        
         read_data = AWSPostgreSQLRDS()
         webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
         webtoon_info_data = read_data.read_RDS_data(table_name='webtooninfo', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
@@ -202,9 +200,9 @@ class Webtoon(webdriver.Chrome):
             local_storage.download_webtoon_info()
 
     async def get_episode_list(self):
-        '''
-        Asynchronously gathers a list of all episodes currently available for each webtoon
-        '''
+        """Asynchronously gathers a list of all episodes currently available for each
+        webtoon
+        """        
         read_data = AWSPostgreSQLRDS()
         webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
         ep_table_webtoon_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
@@ -247,14 +245,11 @@ class Webtoon(webdriver.Chrome):
                         successul = True
                 except Exception:
                     self.nordvpn()
-        
-        if self.storage == 'RDS':
-            pass
-        else:
-            local_storage = LocalDownload()
-            local_storage.download_episode_and_img_urls()
 
     async def generate_IDs_and_scrape_img_urls(self):
+        """Generates both friendly IDs and a v4 uuid for each webtoon episode. It also
+        scrapes the image urls present in each episode during the same loop
+        """        
         read_data = AWSPostgreSQLRDS()
         episode_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='episode_url', search=False, col_search=None, col_search_val=None)
 
@@ -277,7 +272,16 @@ class Webtoon(webdriver.Chrome):
                 except Exception:
                     self.nordvpn()
 
+        if self.storage == 'RDS':
+            pass
+        else:
+            local_storage = LocalDownload()
+            local_storage.download_episode_and_img_urls()
+
     async def scrape_images(self):
+        """Using the image urls scraped from each episode, this method uploads the image
+        to an Amazon S3 bucket
+        """        
         read_data = AWSPostgreSQLRDS()
         img_url_data = read_data.read_RDS_data(table_name='imgurls', columns='img_url', search=False, col_search=None, col_search_val=None)
 
@@ -299,3 +303,9 @@ class Webtoon(webdriver.Chrome):
                         successul = True
                 except Exception:
                     self.nordvpn()
+
+        if self.storage == 'RDS':
+            pass
+        else:
+            local_storage = LocalDownload()
+            local_storage.locally_download_all_images()

@@ -9,29 +9,28 @@ import webtoon.constants as const
 
 
 class GetWebtoonLinks:
-    '''
-    This class is responsible for scraping all the genres and webtoon urls present
+    """This class is responsible for scraping all the genres and webtoon urls present
     on WEBTOON
-    '''
+
+    Returns:
+        str: Genres and webtoon urls
+    """    
     # Initialise the link collection class
     def __init__(self, driver:WebDriver):
-        '''
-        This dunder method initialises the attributes used in the global scope
-        
-        --Attributes--
-        self.driver = sets the driver to self
-        self._g_list = a private attribute used to temporarily store information
-        about the genres
-        '''
+        """Holds the attributes that are initialised with every instance of this class
+
+        Args:
+            driver (WebDriver): Passes in the webdriver being used in the main Webtoon
+            class
+        """        
         self.driver = driver
         self.genre_list = []
         self.dict_of_webtoon_urls = {}
         self._g_list = []
 
     def get_genres(self):
-        '''
-        Loops through all the genres present on WEBTOON and stores them to a database
-        '''
+        """Loops through all the genres present on WEBTOON and stores them to a database
+        """        
         # Read in genre and webtoon url data
         read_data = AWSPostgreSQLRDS()
         genre_data = read_data.read_RDS_data(table_name='genres', columns='genre', search=False, col_search=None, col_search_val=None)
@@ -113,10 +112,9 @@ class GetWebtoonLinks:
             self._g_list.append(_other_name)
 
     def get_webtoon_list(self):
-        '''
-        Gathers a list of all webtoons present in each individual genre and saves it
+        """Gathers a list of all webtoons present in each individual genre and saves it
         to a database
-        '''
+        """        
         # Wait for the container element to appear
         try:
             WebDriverWait(self.driver, const.DELAY).until(
@@ -155,10 +153,18 @@ class GetWebtoonLinks:
                     insert_webtoons.insert_query(query=my_insert_query)
 
     def get_all_webtoon_urls(self, webtoons, current_genre_urls):
-        '''
-        Checks if the genres scraped are already present in the database. If they are
+        """Checks if the genres scraped are already present in the database. If they are
         not present, it will return a list of missing webtoons
-        '''
+
+        Args:
+            webtoons (list[WebElement]): Holds a list of all WebElements that represents
+            each webtoon
+            current_genre_urls (list): Holds a list of webtoons currently present in the
+            database for a single genre
+
+        Returns:
+            list: Returns a list of newly added webtoon that need to be scraped
+        """        
         new_webtoons = []
         for webtoon in webtoons:
             # For every li tag, get the link from the 'href' attribute and

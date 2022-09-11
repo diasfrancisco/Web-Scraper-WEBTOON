@@ -8,10 +8,12 @@ import webtoon.constants as const
 
 
 class AWSPostgreSQLRDS:
-    def __init__(self):
-        pass
-
+    """Contains the methods used to interact with both the RDS and S3 services provided
+    by Amazon Web Services
+    """    
     def create_tables(self):
+        """Creates the tables needed to store all the information in
+        """        
         conn = None
 
         try:
@@ -72,6 +74,18 @@ class AWSPostgreSQLRDS:
                 conn.close()
 
     def read_RDS_data(self, table_name, columns, search, col_search, col_search_val):
+        """Reads in the data from the relational database
+
+        Args:
+            table_name (str): The name of the table to search
+            columns (str): The columns to be searched
+            search (bool): Sends a more specific search request
+            col_search (str or bool): The column from which values are needed
+            col_search_val (str or bool): The item to look group by
+
+        Returns:
+            list[tuple]: a list of tuples containing the data needed
+        """        
         conn = None
 
         try:
@@ -106,6 +120,11 @@ class AWSPostgreSQLRDS:
                 conn.close()
 
     def insert_query(self, query):
+        """Sends an insert query to the database
+
+        Args:
+            query (str): A query for adding information to a table
+        """        
         conn = None
 
         try:
@@ -127,6 +146,14 @@ class AWSPostgreSQLRDS:
                 conn.close()
 
     def upload_images_to_S3(self, image, content_type, s3key, s3bucket):
+        """_summary_
+
+        Args:
+            image (binary): The image in binary mode
+            content_type (str): The content type tag associated with the image
+            s3key (str): The key name for each image
+            s3bucket (str): The S3 bucket the object is to be stored in
+        """        
         # Connect to S3
         s3 = boto3.client('s3', aws_access_key_id=const.ACCESS_KEY_ID, aws_secret_access_key=const.SECRET_ACCESS_KEY)
         try:
@@ -142,12 +169,23 @@ class AWSPostgreSQLRDS:
 
 
 class LocalDownload(AWSPostgreSQLRDS):
+    """Contains the methods needed to locally download the data form the RDS and S3
+    databases
+
+    Args:
+        AWSPostgreSQLRDS (class): Contains the methods used to interact with both the
+        RDS and S3 services provided by Amazon Web Services
+    """    
     def __init__(self):
+        """Holds the attributes that are initialised with every instance of this class
+        """        
         self.genre_list = []
         self.dict_of_webtoon_urls = {}
         self.dict_of_episode_urls = {}
 
     def download_genres(self):
+        """Downloads the genres as a json file
+        """        
         genre_data = self.read_RDS_data(table_name='genres', columns='genre', search=False, col_search=None, col_search_val=None)
         self.genre_list = [r[0] for r in genre_data]
         # Create file if it doesn't already exist
@@ -158,6 +196,8 @@ class LocalDownload(AWSPostgreSQLRDS):
                 json.dump(self.genre_list, f, indent=4)
 
     def download_webtoon_urls(self):
+        """Downloads the webtoon urls as a json file
+        """        
         webtoon_url_data = self.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url', search=False, col_search=None, col_search_val=None)
         for r in webtoon_url_data:
             # If not a genre, add to dictionary
@@ -180,6 +220,8 @@ class LocalDownload(AWSPostgreSQLRDS):
                 json.dump(self.dict_of_webtoon_urls, f, indent=4)
 
     def download_webtoon_info(self):
+        """Downloads the webtoon info for each webtoon as a json file
+        """        
         webtoon_info_data = self.read_RDS_data(table_name='webtooninfo', columns='webtoon_url, genre, title, authors, views, subscribers, rating', search=False, col_search=None, col_search_val=None)
 
         for r in webtoon_info_data:
@@ -202,6 +244,8 @@ class LocalDownload(AWSPostgreSQLRDS):
                     json.dump(all_webtoon_info_dict, f, indent=4, ensure_ascii=False)
 
     def download_episode_and_img_urls(self):
+        """Downloads the episode and image urls as a json file
+        """        
         webtoon_url_data = self.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
         webtoon_urls = [r[0] for r in webtoon_url_data]
 
@@ -228,4 +272,6 @@ class LocalDownload(AWSPostgreSQLRDS):
                         json.dump(img_urls, f, indent=4)
 
     def locally_download_all_images(self):
+        """Downloads all the images from the S3 bucket
+        """        
         pass

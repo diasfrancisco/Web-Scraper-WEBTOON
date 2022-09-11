@@ -1,11 +1,5 @@
-import os
 import uuid
 import math
-import aiohttp
-import asyncio
-import time
-from io import BytesIO
-from PIL import Image
 
 from bs4 import BeautifulSoup
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -16,20 +10,26 @@ import webtoon.constants as const
 
 
 class GenerateIDs:
-    '''This class is used to generate both the friendly ID and v4 UUID for each
-    webtoon'''
+    """This class is used to generate both the friendly ID and v4 UUID for each
+    webtoon
+    """    
     def __init__(self, driver:WebDriver):
-        '''Initialises the class with the necessary attributes
-        
-        --Attributes--
-        self.driver = sets the driver to self'''
+        """Holds the attributes that are initialised with every instance of this class
+
+        Args:
+            driver (WebDriver): Passes in the webdriver being used in the main Webtoon
+            class
+        """        
         self.driver = driver
 
     def get_friendly_ID(self, episode_url, storage):
-        '''
-        Uses the url to create a friendly ID that is made up of the name of
+        """Uses the url to create a friendly ID that is made up of the name of
         the webtoon and a unique title no
-        '''
+
+        Args:
+            episode_url (str): The current episode url
+            storage (str): Holds the storage option the user has chosen
+        """        
         split_url = episode_url.split("/")[5:7]
         friendly_ID = "-".join(split_url)
 
@@ -48,10 +48,11 @@ class GenerateIDs:
             CreateDirs.episode_dir(self, episode_url)
 
     def generate_v4_UUID(self, episode_url):
-        '''
-        Generates a v4 UUID using the uuid module and saves the url
-        and the ID in a dictionary
-        '''
+        """Generates a random v4 UUID using the uuid module
+
+        Args:
+            episode_url (str): The current episode url
+        """        
         v4_UUID = str(uuid.uuid4())
 
         my_query = f'''
@@ -64,30 +65,31 @@ class GenerateIDs:
         insert_uuid.insert_query(query=my_query)
 
 class ScrapeImages:
-    '''
-    Gathers all episode urls for each webtoon, the image urls for each episode and
+    """Scrapes all episode urls for each webtoon, the image urls for each episode and
     the images associated with each image url
-    '''
+    """    
     def __init__(self, driver:WebDriver, storage_state):
-        '''
-        This dunder method initialises the class with the necessary attributes
-        
-        --Attributes--
-        self.driver = sets the driver to self
-        self.headers = list of headers to send with each request
-        '''
+        """Holds the attributes that are initialised with every instance of this class
+
+        Args:
+            driver (WebDriver): Passes in the webdriver being used in the main Webtoon
+            class
+            storage_state (str): Holds the storage option the user has chosen
+        """        
         self.driver = driver
         self.storage = storage_state
 
     async def get_total_pages(self, session, webtoon_url):
-        '''
-        Gets the total number of pages for every webtoon
-        '''
+        """Asynchronously gets the total number of pages for every webtoon
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            webtoon_url (str): The current webtoon url
+        """        
         headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'en-GB,en;q=0.9',
-            #'cookie': 'locale=en; needGDPR=true; needCCPA=false; needCOPPA=false; countryCode=GB; timezoneOffset=+1; ctZoneId=Europe/London; _ga=GA1.1.158692783.1661769943; wtv=1; wts=1661769943334; wtu="4ba16aa8f65f6ef6d6d937709cab7508"; __gads=ID=f3d24933af272d22-22f4cdbf17d500ae:T=1661769944:S=ALNI_MbWkePThyqePc9yKtLkx94vRRPOSw; _ga_ZTE4EZ7DVX=GS1.1.1661769943.1.1.1661769946.57.0.0',
             'referer': 'https://www.webtoons.com/en/genre',
             'sec-ch-ua': '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
             'sec-ch-ua-full-version-list': '"Google Chrome";v="105.0.5195.52", "Not)A;Brand";v="8.0.0.0", "Chromium";v="105.0.5195.52"',
@@ -121,9 +123,12 @@ class ScrapeImages:
         insert_total_pages.insert_query(query=my_query)
 
     async def get_all_episode_urls(self, session, webtoon_url):
-        '''
-        Gathers all the episode urls for each webtoon
-        '''
+        """Asynchronously gathers all the episode urls for each webtoon
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            webtoon_url (str): The current webtoon url
+        """        
         read_data = AWSPostgreSQLRDS()
         episode_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='episode_url', search=True, col_search='webtoon_url', col_search_val=webtoon_url)
         total_page_data = read_data.read_RDS_data(table_name='webtoonurls', columns='total_pages', search=True, col_search='webtoon_url', col_search_val=webtoon_url)
@@ -135,7 +140,6 @@ class ScrapeImages:
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'en-GB,en;q=0.9',
-            #'cookie': 'locale=en; needGDPR=true; needCCPA=false; needCOPPA=false; countryCode=GB; timezoneOffset=+1; ctZoneId=Europe/London; _ga=GA1.1.158692783.1661769943; wtv=1; wts=1661769943334; wtu="4ba16aa8f65f6ef6d6d937709cab7508"; __gads=ID=f3d24933af272d22-22f4cdbf17d500ae:T=1661769944:S=ALNI_MbWkePThyqePc9yKtLkx94vRRPOSw; _ga_ZTE4EZ7DVX=GS1.1.1661769943.1.1.1661769946.57.0.0',
             'referer': 'https://www.webtoons.com/en/genre',
             'sec-ch-ua': '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
             'sec-ch-ua-full-version-list': '"Google Chrome";v="105.0.5195.52", "Not)A;Brand";v="8.0.0.0", "Chromium";v="105.0.5195.52"',
@@ -181,6 +185,13 @@ class ScrapeImages:
                     insert_episodes.insert_query(query=my_query)
 
     async def generate_IDs_and_get_img_urls(self, session, episode_url):
+        """Asynchronously generates a friendly ID and a v4 uuid. It also asynchronously
+        scrapes all the image urls
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            episode_url (str): The current episode url
+        """        
         GenerateIDs.get_friendly_ID(self, episode_url, storage=self.storage)
         GenerateIDs.generate_v4_UUID(self, episode_url)
 
@@ -193,7 +204,6 @@ class ScrapeImages:
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'en-GB,en;q=0.9',
-            #'cookie': 'locale=en; needGDPR=true; needCCPA=false; needCOPPA=false; countryCode=GB; timezoneOffset=+1; ctZoneId=Europe/London; _ga=GA1.1.158692783.1661769943; wtv=1; wts=1661769943334; wtu="4ba16aa8f65f6ef6d6d937709cab7508"; __gads=ID=f3d24933af272d22-22f4cdbf17d500ae:T=1661769944:S=ALNI_MbWkePThyqePc9yKtLkx94vRRPOSw; _ga_ZTE4EZ7DVX=GS1.1.1661769943.1.1.1661769946.57.0.0',
             'referer': 'https://www.webtoons.com/en/genre',
             'sec-ch-ua': '"Chromium";v="104", " Not A;Brand";v="99", "Google Chrome";v="104"',
             'sec-ch-ua-full-version-list': '"Chromium";v="104.0.5112.101", " Not A;Brand";v="99.0.0.0", "Google Chrome";v="104.0.5112.101"',
@@ -232,6 +242,13 @@ class ScrapeImages:
                     continue
 
     async def download_all_images(self, session, img_url):
+        """Asynchronously performs a GET request to each image url and stores the image
+        to an S3 bucket
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            img_url (str): The current image url
+        """        
         try:
             async with session.get(img_url, headers={'referer': img_url}) as response:
                 assert response.status == 200
