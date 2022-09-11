@@ -1,6 +1,5 @@
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import SoftwareName, OperatingSystem
-from proxy_randomizer import RegisteredProviders
 
 
 # Load main page

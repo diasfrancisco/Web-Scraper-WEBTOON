@@ -135,6 +135,8 @@ class AWSPostgreSQLRDS:
                 return
             else:
                 s3.put_object(Body=image, Bucket=s3bucket, Key=s3key, ContentType=content_type)
+        except ClientError as e:
+            print("ClientError: ", e)
         except Exception as e:
             print("S3 connection ran into the following error: ", e)
 
