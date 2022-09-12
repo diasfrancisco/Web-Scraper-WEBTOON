@@ -274,4 +274,36 @@ class LocalDownload(AWSPostgreSQLRDS):
     def locally_download_all_images(self):
         """Downloads all the images from the S3 bucket
         """        
-        pass
+        episode_url_data = self.read_RDS_data(table_name='episodeurls', columns='episode_url', search=False, col_search=None, col_search_val=None)
+        episode_urls = [r[0] for r in episode_url_data]
+        
+        for episode_url in episode_urls:
+            # Get the webtoon folder name
+            webtoon_folder = episode_url.split('/')[5]
+            # Get the episode folder name
+            split_url = episode_url.split("/")[5:7]
+            episode_folder = "-".join(split_url)
+
+            img_url_data = self.read_RDS_data(table_name='imgurls', columns='img_url', search=True, col_search='episode_url', col_search_val=episode_url)
+            img_urls = [r[0] for r in img_url_data]
+
+            key_list = []
+
+            for img_url in img_urls:
+                split_key = img_url.split('/')[4:6]
+                key = "-".join(split_key)
+                key_list.append(key)
+
+            s3 = boto3.resource('s3')
+
+            for key in key_list:
+                image_download_path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}/images/{key}'
+                try:
+                    s3.Bucket('webtoon-imgs').download_file(key, image_download_path)
+                except ClientError as e:
+                    if e.response['Error']['Code'] == '404':
+                        print("The object with that key does not exist")
+                    else:
+                        print("Ran into a different error: ", e)
+                except Exception as e:
+                    print("S3 connection ran into the following error: ", e)
