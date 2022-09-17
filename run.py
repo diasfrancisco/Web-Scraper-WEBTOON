@@ -6,7 +6,7 @@ from webtoon.to_WEBTOON import Webtoon
 
 def main():
     """The main script file that runs the major methods in the Webtoon class.
-    It runs each method and displays the run time for each one
+    It runs the methods and displays the run time for each one
     """    
     with Webtoon(collapse=True, storage=None) as bot:
         print('------------------------------------- START ------------------------------------')

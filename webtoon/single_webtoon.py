@@ -56,7 +56,6 @@ class GetDetails:
             'user-agent': const.USER_AGENT
         }
         async with session.get(webtoon_url, headers=headers) as response:
-            print(response.status)
             assert response.status == 200
             html = await response.text()
 

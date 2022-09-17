@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 import webtoon.constants as const
 from webtoon.get_webtoons import GetWebtoonLinks
@@ -19,7 +20,7 @@ from webtoon.single_episode import ScrapeImages
 from webtoon.data_storage import AWSPostgreSQLRDS, LocalDownload
 
 
-class Webtoon(webdriver.Chrome):
+class Webtoon(webdriver.Remote):
     """Contains the methods needed to scrape data from Webtoon. It inherits form the
     webdriver.Chrome module to create an instance of the web driver
 
@@ -45,8 +46,12 @@ class Webtoon(webdriver.Chrome):
         os.environ['PATH'] += self.executable_path
         # Create an instance of the webdriver using the chrome options specified
         options = webdriver.ChromeOptions()
+        options.add_argument("--no-sandbox")
         options.add_argument("--headless")
-        super(Webtoon, self).__init__(options=options)
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-setuid-sandbox")
+        super(Webtoon, self).__init__("http://127.0.0.1:4444/wd/hub", DesiredCapabilities.CHROME, options=options)
 
     def __exit__(self, *args):
         """Closes the browser after completion

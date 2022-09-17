@@ -45,7 +45,7 @@ class GenerateIDs:
         if storage == 'RDS':
             pass
         else:
-            CreateDirs.episode_dir(self, episode_url)
+            CreateDirs. episode_dir(self, episode_url)
 
     def generate_v4_UUID(self, episode_url):
         """Generates a random v4 UUID using the uuid module
