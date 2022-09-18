@@ -75,18 +75,11 @@ class ScrapeImages:
             driver (WebDriver): Passes in the webdriver being used in the main Webtoon
             class
             storage_state (str): Holds the storage option the user has chosen
+            headers (dict): Holds the headers needed to establish a connection with WEBTOON
         """        
         self.driver = driver
         self.storage = storage_state
-
-    async def get_total_pages(self, session, webtoon_url):
-        """Asynchronously gets the total number of pages for every webtoon
-
-        Args:
-            session (ClientSession): First-class interface for making HTTP requests
-            webtoon_url (str): The current webtoon url
-        """        
-        headers = {
+        self.headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'en-GB,en;q=0.9',
@@ -105,7 +98,14 @@ class ScrapeImages:
             'user-agent': const.USER_AGENT
         }
 
-        async with session.get(webtoon_url, headers=headers) as response:
+    async def get_total_pages(self, session, webtoon_url):
+        """Asynchronously gets the total number of pages for every webtoon
+
+        Args:
+            session (ClientSession): First-class interface for making HTTP requests
+            webtoon_url (str): The current webtoon url
+        """        
+        async with session.get(webtoon_url, headers=self.headers) as response:
             assert response.status == 200
             html = await response.text()
 
@@ -130,34 +130,27 @@ class ScrapeImages:
             webtoon_url (str): The current webtoon url
         """        
         read_data = AWSPostgreSQLRDS()
-        episode_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='episode_url', search=True, col_search='webtoon_url', col_search_val=webtoon_url)
-        total_page_data = read_data.read_RDS_data(table_name='webtoonurls', columns='total_pages', search=True, col_search='webtoon_url', col_search_val=webtoon_url)
+        episode_url_data = read_data.read_RDS_data(
+            table_name='episodeurls',
+            columns='episode_url',
+            search=True,
+            col_search='webtoon_url',
+            col_search_val=webtoon_url
+        )
+        total_page_data = read_data.read_RDS_data(
+            table_name='webtoonurls',
+            columns='total_pages',
+            search=True,
+            col_search='webtoon_url',
+            col_search_val=webtoon_url
+        )
 
         episode_urls = [r[0] for r in episode_url_data]
         total_pages = [r[0] for r in total_page_data]
 
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-GB,en;q=0.9',
-            'referer': 'https://www.webtoons.com/en/genre',
-            'sec-ch-ua': '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
-            'sec-ch-ua-full-version-list': '"Google Chrome";v="105.0.5195.52", "Not)A;Brand";v="8.0.0.0", "Chromium";v="105.0.5195.52"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-model': "",
-            'sec-ch-ua-platform': "Linux",
-            'sec-ch-ua-platform-version': "5.15.0",
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'cross-site',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': str('1'),
-            'user-agent': const.USER_AGENT
-        }
-
         # Loops through all pages to get episode urls
         for i in range(total_pages[0]):
-            async with session.get(webtoon_url + f'&page={i+1}', headers=headers) as response:
+            async with session.get(webtoon_url + f'&page={i+1}', headers=self.headers) as response:
                 assert response.status == 200
                 html = await response.text()
 
@@ -196,30 +189,17 @@ class ScrapeImages:
         GenerateIDs.generate_v4_UUID(self, episode_url)
 
         read_data = AWSPostgreSQLRDS()
-        img_url_data = read_data.read_RDS_data(table_name='imgurls', columns='img_url', search=True, col_search='img_url', col_search_val=episode_url)
+        img_url_data = read_data.read_RDS_data(
+            table_name='imgurls',
+            columns='img_url',
+            search=True,
+            col_search='img_url',
+            col_search_val=episode_url
+        )
 
         img_urls = [r[0] for r in img_url_data]
 
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-GB,en;q=0.9',
-            'referer': 'https://www.webtoons.com/en/genre',
-            'sec-ch-ua': '"Chromium";v="104", " Not A;Brand";v="99", "Google Chrome";v="104"',
-            'sec-ch-ua-full-version-list': '"Chromium";v="104.0.5112.101", " Not A;Brand";v="99.0.0.0", "Google Chrome";v="104.0.5112.101"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-model': "",
-            'sec-ch-ua-platform': "Linux",
-            'sec-ch-ua-platform-version': "5.15.0",
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'cross-site',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': str('1'),
-            'user-agent': const.USER_AGENT
-        }
-
-        async with session.get(episode_url, headers=headers) as response:
+        async with session.get(episode_url, headers=self.headers) as response:
             assert response.status == 200
             html = await response.text()
 

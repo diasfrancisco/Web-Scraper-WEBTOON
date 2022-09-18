@@ -42,10 +42,10 @@ class CreateDirs:
         # Create a new directory for each webtoon and further children
         # directories if they do not exist
         webtoon_folder = webtoon_url.split("/")[5]
-        if os.path.isdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}'):
+        if os.path.isdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}'):
             pass
         else:
-            os.mkdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}')
+            os.mkdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}')
 
     def episode_dir(self, episode_url):
         """This method creates a directory for every episode in the webtoon
@@ -57,10 +57,10 @@ class CreateDirs:
         # directories if they do not exist
         webtoon_folder = episode_url.split('/')[5]
         episode_folder = episode_url.split('/')[6]
-        if os.path.isdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}'):
+        if os.path.isdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}/{episode_folder}'):
             pass
         else:
-            os.mkdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}')
+            os.mkdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}/{episode_folder}')
         CreateDirs.images_dir(self, webtoon_folder, episode_folder)
 
     def images_dir(self, webtoon_folder, episode_folder):
@@ -72,7 +72,7 @@ class CreateDirs:
             episode_folder (str): The name of the episode folder
         """        
         # Creates an image directory if it doesn't exist
-        if os.path.isdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}/images'):
+        if os.path.isdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}/{episode_folder}/images'):
             pass
         else:
-            os.mkdir(f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}/images')
+            os.mkdir(const.ALL_WEBTOONS_DIR_PATH + f'/{webtoon_folder}/{episode_folder}/images')

@@ -40,10 +40,9 @@ class GetDetails:
             'accept-encoding': 'gzip, deflate, br',
             'accept-language': 'en-GB,en;q=0.9',
             'cache-control': 'max-age=0',
-            'cookie': 'locale=en; needGDPR=true; needCCPA=false; needCOPPA=false; countryCode=GB; timezoneOffset=+1; ctZoneId=Europe/London; _ga=GA1.1.1020809292.1661704671; wtv=1; wts=1661704671434; wtu="f2d1e97123cad80964302e47a569299c"; __gads=ID=7c7e6e68e405ba52-22597be60ed5007c:T=1661704675:S=ALNI_MaISeoXgpX3-BSfzeAkH6rNDB1PiA; _ga_ZTE4EZ7DVX=GS1.1.1661704671.1.1.1661704688.43.0.0; tpamGDPR=gad%2Cfb%2Ctw%2Csn%2Cbi%2Ctt; tpaaGDPR=ga; rctpGDPR=true',
             'referer': 'https://www.webtoons.com/en/genre',
-            'sec-ch-ua': '"Chromium";v="104", " Not A;Brand";v="99", "Google Chrome";v="104"',
-            'sec-ch-ua-full-version-list': '"Chromium";v="104.0.5112.101", " Not A;Brand";v="99.0.0.0", "Google Chrome";v="104.0.5112.101"',
+            'sec-ch-ua': '"Google Chrome";v="105", "Not)A;Brand";v="8", "Chromium";v="105"',
+            'sec-ch-ua-full-version-list': '"Google Chrome";v="105.0.5195.52", "Not)A;Brand";v="8.0.0.0", "Chromium";v="105.0.5195.52"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-model': "",
             'sec-ch-ua-platform': "Linux",
@@ -55,6 +54,7 @@ class GetDetails:
             'upgrade-insecure-requests': str('1'),
             'user-agent': const.USER_AGENT
         }
+        
         async with session.get(webtoon_url, headers=headers) as response:
             assert response.status == 200
             html = await response.text()

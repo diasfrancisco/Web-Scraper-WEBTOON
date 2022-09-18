@@ -33,8 +33,20 @@ class GetWebtoonLinks:
         """        
         # Read in genre and webtoon url data
         read_data = AWSPostgreSQLRDS()
-        genre_data = read_data.read_RDS_data(table_name='genres', columns='genre', search=False, col_search=None, col_search_val=None)
-        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url', search=False, col_search=None, col_search_val=None)
+        genre_data = read_data.read_RDS_data(
+            table_name='genres',
+            columns='genre',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
+        webtoon_url_data = read_data.read_RDS_data(
+            table_name='webtoonurls',
+            columns='genre, webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
 
         # Save data to attributes
         self.genre_list = [r[0] for r in genre_data]
@@ -55,7 +67,9 @@ class GetWebtoonLinks:
         # Wait for the main genre element to appear
         try:
             WebDriverWait(self.driver, const.DELAY).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@class="snb _genre"]' and '//*[@class="g_others"]'))
+                EC.presence_of_element_located(
+                    (By.XPATH, '//*[@class="snb _genre"]' and '//*[@class="g_others"]')
+                )
             )
         except TimeoutException:
             print("Genre element did not load")

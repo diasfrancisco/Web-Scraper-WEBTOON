@@ -155,13 +155,22 @@ class AWSPostgreSQLRDS:
             s3bucket (str): The S3 bucket the object is to be stored in
         """        
         # Connect to S3
-        s3 = boto3.client('s3', aws_access_key_id=const.ACCESS_KEY_ID, aws_secret_access_key=const.SECRET_ACCESS_KEY)
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=const.ACCESS_KEY_ID,
+            aws_secret_access_key=const.SECRET_ACCESS_KEY
+        )
         try:
             key_result = s3.list_objects_v2(Bucket=s3bucket, Prefix=s3key)
             if 'Contents' in key_result:
                 return
             else:
-                s3.put_object(Body=image, Bucket=s3bucket, Key=s3key, ContentType=content_type)
+                s3.put_object(
+                    Body=image,
+                    Bucket=s3bucket,
+                    Key=s3key,
+                    ContentType=content_type
+                )
         except ClientError as e:
             print("ClientError: ", e)
         except Exception as e:
@@ -186,7 +195,13 @@ class LocalDownload(AWSPostgreSQLRDS):
     def download_genres(self):
         """Downloads the genres as a json file
         """        
-        genre_data = self.read_RDS_data(table_name='genres', columns='genre', search=False, col_search=None, col_search_val=None)
+        genre_data = self.read_RDS_data(
+            table_name='genres',
+            columns='genre',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
         self.genre_list = [r[0] for r in genre_data]
         # Create file if it doesn't already exist
         if os.path.isfile(const.GENRES_AND_WEBTOON_URLS_DIR_PATH + '/genres.json'):
@@ -198,7 +213,13 @@ class LocalDownload(AWSPostgreSQLRDS):
     def download_webtoon_urls(self):
         """Downloads the webtoon urls as a json file
         """        
-        webtoon_url_data = self.read_RDS_data(table_name='webtoonurls', columns='genre, webtoon_url', search=False, col_search=None, col_search_val=None)
+        webtoon_url_data = self.read_RDS_data(
+            table_name='webtoonurls',
+            columns='genre, webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
         for r in webtoon_url_data:
             # If not a genre, add to dictionary
             try:
@@ -222,7 +243,13 @@ class LocalDownload(AWSPostgreSQLRDS):
     def download_webtoon_info(self):
         """Downloads the webtoon info for each webtoon as a json file
         """        
-        webtoon_info_data = self.read_RDS_data(table_name='webtooninfo', columns='webtoon_url, genre, title, authors, views, subscribers, rating', search=False, col_search=None, col_search_val=None)
+        webtoon_info_data = self.read_RDS_data(
+            table_name='webtooninfo',
+            columns='webtoon_url, genre, title, authors, views, subscribers, rating',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
 
         for r in webtoon_info_data:
             # Create the following dictionary for every webtoon
@@ -246,11 +273,23 @@ class LocalDownload(AWSPostgreSQLRDS):
     def download_episode_and_img_urls(self):
         """Downloads the episode and image urls as a json file
         """        
-        webtoon_url_data = self.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        webtoon_url_data = self.read_RDS_data(
+            table_name='webtoonurls',
+            columns='webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
         webtoon_urls = [r[0] for r in webtoon_url_data]
 
         for webtoon_url in webtoon_urls:
-            episode_url_data = self.read_RDS_data(table_name='episodeurls', columns='episode_url', search=True, col_search='webtoon_url', col_search_val=webtoon_url)
+            episode_url_data = self.read_RDS_data(
+                table_name='episodeurls',
+                columns='episode_url',
+                search=True,
+                col_search='webtoon_url',
+                col_search_val=webtoon_url
+            )
             episode_urls = [r[0] for r in episode_url_data]
 
             # Create file if it doesn't already exist
@@ -261,7 +300,13 @@ class LocalDownload(AWSPostgreSQLRDS):
                     json.dump(episode_urls, f, indent=4)
 
             for episode_url in episode_urls:
-                img_url_data = self.read_RDS_data(table_name='imgurls', columns='img_url', search=True, col_search='episode_url', col_search_val=episode_url)
+                img_url_data = self.read_RDS_data(
+                    table_name='imgurls',
+                    columns='img_url',
+                    search=True,
+                    col_search='episode_url',
+                    col_search_val=episode_url
+                )
                 img_urls = [r[0] for r in img_url_data]
 
                 # Create file if it doesn't already exist
@@ -274,7 +319,13 @@ class LocalDownload(AWSPostgreSQLRDS):
     def locally_download_all_images(self):
         """Downloads all the images from the S3 bucket
         """        
-        episode_url_data = self.read_RDS_data(table_name='episodeurls', columns='episode_url', search=False, col_search=None, col_search_val=None)
+        episode_url_data = self.read_RDS_data(
+            table_name='episodeurls',
+            columns='episode_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
         episode_urls = [r[0] for r in episode_url_data]
         
         for episode_url in episode_urls:
@@ -284,7 +335,13 @@ class LocalDownload(AWSPostgreSQLRDS):
             split_url = episode_url.split("/")[5:7]
             episode_folder = "-".join(split_url)
 
-            img_url_data = self.read_RDS_data(table_name='imgurls', columns='img_url', search=True, col_search='episode_url', col_search_val=episode_url)
+            img_url_data = self.read_RDS_data(
+                table_name='imgurls',
+                columns='img_url',
+                search=True,
+                col_search='episode_url',
+                col_search_val=episode_url
+            )
             img_urls = [r[0] for r in img_url_data]
 
             key_list = []
@@ -297,7 +354,7 @@ class LocalDownload(AWSPostgreSQLRDS):
             s3 = boto3.resource('s3')
 
             for key in key_list:
-                image_download_path = f'/home/cisco/GitLocal/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}/images/{key}'
+                image_download_path = f'/Web-Scraper/raw_data/all_webtoons/{webtoon_folder}/{episode_folder}/images/{key}'
                 try:
                     s3.Bucket('webtoon-imgs').download_file(key, image_download_path)
                 except ClientError as e:

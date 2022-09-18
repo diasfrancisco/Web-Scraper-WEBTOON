@@ -51,7 +51,11 @@ class Webtoon(webdriver.Remote):
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-setuid-sandbox")
-        super(Webtoon, self).__init__("http://127.0.0.1:4444/wd/hub", DesiredCapabilities.CHROME, options=options)
+        super(Webtoon, self).__init__(
+            "http://127.0.0.1:4444/wd/hub",
+            DesiredCapabilities.CHROME,
+            options=options
+        )
 
     def __exit__(self, *args):
         """Closes the browser after completion
@@ -68,7 +72,9 @@ class Webtoon(webdriver.Remote):
         """        
         while True:
             try:
-                data_storage_location = int(input("Enter [1] to download data locally, [2] to upload data to RDS or [3] for both: "))
+                data_storage_location = int(input(
+                    "Enter [1] to download data locally, [2] to upload data to RDS or [3] for both: "
+                ))
             except ValueError:
                 print('Sorry, that was not a valid input. Please try again')
                 continue
@@ -129,7 +135,9 @@ class Webtoon(webdriver.Remote):
             # Wait until the cookies frame appear and accept them
             WebDriverWait(
                 self, const.DELAY).until(EC.presence_of_element_located(
-                    (By.XPATH, '//*[@class="gdpr_ly_cookie _gdprCookieBanner on"]' and '//*[@class="link _agree N=a:ckb.agree"]')
+                    (By.XPATH, '//*[@class="gdpr_ly_cookie _gdprCookieBanner on"]'
+                    and
+                    '//*[@class="link _agree N=a:ckb.agree"]')
                 )
             )
         except TimeoutException:
@@ -180,8 +188,20 @@ class Webtoon(webdriver.Remote):
         rating for each individual webtoon
         """        
         read_data = AWSPostgreSQLRDS()
-        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
-        webtoon_info_data = read_data.read_RDS_data(table_name='webtooninfo', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        webtoon_url_data = read_data.read_RDS_data(
+            table_name='webtoonurls',
+            columns='webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
+        webtoon_info_data = read_data.read_RDS_data(
+            table_name='webtooninfo',
+            columns='webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
         
         webtoon_urls = [r[0] for r in webtoon_url_data]
         webtoon_info_urls = [r[0] for r in webtoon_info_data]
@@ -193,7 +213,9 @@ class Webtoon(webdriver.Remote):
                     continue
                 else:
                     info = GetDetails(driver=self, storage_state=self.storage)
-                    info_task = asyncio.ensure_future(info.get_basic_info(session, webtoon_url))
+                    info_task = asyncio.ensure_future(
+                        info.get_basic_info(session, webtoon_url)
+                    )
                     info_tasks.append(info_task)
 
             await asyncio.gather(*info_tasks)
@@ -209,8 +231,20 @@ class Webtoon(webdriver.Remote):
         webtoon
         """        
         read_data = AWSPostgreSQLRDS()
-        webtoon_url_data = read_data.read_RDS_data(table_name='webtoonurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
-        ep_table_webtoon_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='webtoon_url', search=False, col_search=None, col_search_val=None)
+        webtoon_url_data = read_data.read_RDS_data(
+            table_name='webtoonurls',
+            columns='webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
+        ep_table_webtoon_url_data = read_data.read_RDS_data(
+            table_name='episodeurls',
+            columns='webtoon_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
 
         ep_table_webtoon_urls = [r[0] for r in ep_table_webtoon_url_data]
         webtoon_urls = [r[0] for r in webtoon_url_data]
@@ -224,7 +258,9 @@ class Webtoon(webdriver.Remote):
                         page_tasks = []
                         for webtoon_url in webtoon_url_chunk:
                             get_all_pages = ScrapeImages(driver=self, storage_state=self.storage)
-                            page_task = asyncio.ensure_future(get_all_pages.get_total_pages(session, webtoon_url))
+                            page_task = asyncio.ensure_future(
+                                get_all_pages.get_total_pages(session, webtoon_url)
+                            )
                             page_tasks.append(page_task)
 
                         await asyncio.gather(*page_tasks)
@@ -243,7 +279,9 @@ class Webtoon(webdriver.Remote):
                                 continue
                             else:
                                 get_all_eps = ScrapeImages(driver=self, storage_state=self.storage)
-                                episode_task = asyncio.ensure_future(get_all_eps.get_all_episode_urls(session, webtoon_url))
+                                episode_task = asyncio.ensure_future(
+                                    get_all_eps.get_all_episode_urls(session, webtoon_url)
+                                )
                                 episode_urls_tasks.append(episode_task)
 
                         await asyncio.gather(*episode_urls_tasks)
@@ -256,7 +294,13 @@ class Webtoon(webdriver.Remote):
         scrapes the image urls present in each episode during the same loop
         """        
         read_data = AWSPostgreSQLRDS()
-        episode_url_data = read_data.read_RDS_data(table_name='episodeurls', columns='episode_url', search=False, col_search=None, col_search_val=None)
+        episode_url_data = read_data.read_RDS_data(
+            table_name='episodeurls',
+            columns='episode_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
 
         episode_urls = [r[0] for r in episode_url_data]
         episode_url_chunks = [episode_urls[pos:pos + 15] for pos in range(0, len(episode_urls), 15)]
@@ -269,7 +313,9 @@ class Webtoon(webdriver.Remote):
                         img_tasks = []
                         for episode_url in episode_url_chunk:
                             img_urls = ScrapeImages(driver=self, storage_state=self.storage)
-                            img_task = asyncio.ensure_future(img_urls.generate_IDs_and_get_img_urls(session, episode_url))
+                            img_task = asyncio.ensure_future(
+                                img_urls.generate_IDs_and_get_img_urls(session, episode_url)
+                            )
                             img_tasks.append(img_task)
 
                         await asyncio.gather(*img_tasks)
@@ -288,7 +334,13 @@ class Webtoon(webdriver.Remote):
         to an Amazon S3 bucket
         """        
         read_data = AWSPostgreSQLRDS()
-        img_url_data = read_data.read_RDS_data(table_name='imgurls', columns='img_url', search=False, col_search=None, col_search_val=None)
+        img_url_data = read_data.read_RDS_data(
+            table_name='imgurls',
+            columns='img_url',
+            search=False,
+            col_search=None,
+            col_search_val=None
+        )
 
         img_urls = [r[0] for r in img_url_data]
         img_url_chunks = [img_urls[pos:pos + 15] for pos in range(0, len(img_urls), 15)]
@@ -301,7 +353,9 @@ class Webtoon(webdriver.Remote):
                         img_tasks = []
                         for img_url in img_url_chunk:
                             all_imgs = ScrapeImages(driver=self, storage_state=self.storage)
-                            img_task = asyncio.ensure_future(all_imgs.download_all_images(session, img_url))
+                            img_task = asyncio.ensure_future(
+                                all_imgs.download_all_images(session, img_url)
+                            )
                             img_tasks.append(img_task)
 
                         await asyncio.gather(*img_tasks)
