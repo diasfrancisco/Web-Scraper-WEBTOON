@@ -72,13 +72,37 @@ A seperate class called `LocalDownload(AWSPostgreSQLRDS)` was also created to al
 
 ---
 
+Rescraping of data was prevented by using already extracted features such as the friendly_ID or the url. During each run the database is queried for the data that has already been extracted, this is compared against the data being scraped and if a match is found it means the data already has been scraped and can be skipped. Using this and asynchrounous techniques I was able to greatly reduce my run time leading to a more efficent and less time consuming scraping process.
+
 ## **Milestone 7: Containerising the scraper and running it on a cloud server**
 
 ---
 
+Docker is a key tool used to containerise programs. This means key binaries and other modules are present in an isolated environment which can be shipped to various users and run on systems that have major architectural differences. To containerise my scraper, I first installed and set up docker on my local machine. I then set up a Dockerfile to hold the instructions needed to create an image of my current scraper. The Dockerfile uses various commands such as BASE, ENV, RUN, COPY, WORKDIR and CMD to name a few. I set the base image as python 3.10.4 as my python interpreter run the code on python version 3.10.4 without any issues. Next, I used the RUN command to run the following commands...
+
+`RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - `
+
+`RUN sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'`
+
+`RUN apt-get -y update`
+
+`RUN apt-get install -y google-chrome-stable`
+
+`RUN apt-get install -yqq unzip`
+
+``RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip``
+
+`RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin`
+
+These commands installed the latest version of chrome and chromedriver to the image. This is so selenium can run within this container. The image tagged `diasfrancisco/webtoon-scraper:v1.0` was then pushed to my public DockerHub repository.
+
+I then headed over to AWS to set up an EC2 instance to run my scraper on. I created a `t2.xlarge` EC2 instance and SSH'd into it using the VSCode extension `Remote Explorer`. Here I created a `docker-compose.yml` file to create a container that would make use of SeleniumGrid to run my tests. I set up both selenium hub and node chrome as services before pulling my image from the public DockerHub repository. Using a combination of these services, I was able to set up a network for my containers to talk to each other in, using both VNC and noVNC to monitor their actions.
+
 ## **Milestone 8: Monitering and alerting**
 
 ---
+
+
 
 ## **Milestone 9: Setting up a CI/CD pipeline for my Docker image**
 

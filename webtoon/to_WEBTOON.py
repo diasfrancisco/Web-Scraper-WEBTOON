@@ -52,7 +52,7 @@ class Webtoon(webdriver.Remote):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-setuid-sandbox")
         super(Webtoon, self).__init__(
-            "http://127.0.0.1:4444/wd/hub",
+            "http://18.134.3.205:4445/wd/hub",
             DesiredCapabilities.CHROME,
             options=options
         )
