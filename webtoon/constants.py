@@ -1,3 +1,4 @@
+import os
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import SoftwareName, OperatingSystem
 
@@ -13,10 +14,10 @@ DOB_YEAR = "1998"
 DELAY = 10
 
 # Create a dir to store data
-RAW_DATA_DIR_PATH = '/Web-Scraper/raw_data'
-GENRES_AND_WEBTOON_URLS_DIR_PATH = '/Web-Scraper/raw_data/genres_and_webtoon_urls'
-ALL_WEBTOONS_DIR_PATH = '/Web-Scraper/raw_data/all_webtoons'
-IDS_DIR_PATH = '/Web-Scraper/raw_data/all_IDs'
+RAW_DATA_DIR_PATH = './raw_data'
+GENRES_AND_WEBTOON_URLS_DIR_PATH = './raw_data/genres_and_webtoon_urls'
+ALL_WEBTOONS_DIR_PATH = './raw_data/all_webtoons'
+IDS_DIR_PATH = './raw_data/all_IDs'
 
 # User agent cycling
 software_names=[SoftwareName.CHROME.value]
@@ -41,14 +42,11 @@ WINDOWS_COUNTRIES = [
 ENDPOINT = 'webtoon-info-database.cedwxzmw4vkk.eu-west-2.rds.amazonaws.com'
 PORT = '5432'
 USER = 'diasfrancisco'
-with open('/Web-Scraper/webtoon/db_password.txt', 'r') as f:
-    PASSWORD = str(f.read())
+PASSWORD = os.getenv('DB_PASSWORD')
 REGION = 'eu-west-2c'
 DBNAME = 'WebtoonInfo'
 SSLCERTIFICATE = '/Web-Scraper/webtoon/certs/eu-west-2-bundle.pem'
 
 # S3 AWS parameters
-with open('/Web-Scraper/webtoon/s3_access_key_id.txt', 'r') as s3id:
-    ACCESS_KEY_ID = str(s3id.read())
-with open('/Web-Scraper/webtoon/s3_secret_access_key.txt', 'r') as s3key:
-    SECRET_ACCESS_KEY = str(s3key.read())
+ACCESS_KEY_ID = os.getenv('S3_ACCESS_KEY_ID')
+SECRET_ACCESS_KEY = os.getenv('S3_SECRET_ACCESS_KEY')
