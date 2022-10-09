@@ -29,7 +29,7 @@ class Webtoon(webdriver.Remote):
         implementations
     """    
 
-    def __init__(self, executable_path=r"/usr/local/bin", collapse=False, storage=None):
+    def __init__(self, executable_path=r"/usr/local/bin", collapse=False, storage='Both'):
         """Holds the attributes that are initialised with every instance of this class 
 
         Args:
@@ -37,7 +37,7 @@ class Webtoon(webdriver.Remote):
             located in. Defaults to r"/usr/local/bin".
             collapse (bool, optional): A boolean value that determines if the webdriver
             is closed upon completion. Defaults to False.
-            storage (str): Holds the storage option the user chooses. Defaults to None.
+            storage (str): Holds the storage option the user chooses. Defaults to 'Both'.
         """        
         # Initialise global attributes
         self.executable_path = executable_path
@@ -52,7 +52,7 @@ class Webtoon(webdriver.Remote):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-setuid-sandbox")
         super(Webtoon, self).__init__(
-            "http://18.134.3.205:4445/wd/hub",
+            os.getenv('SELENIUM_GRID_ADDRESS'),
             DesiredCapabilities.CHROME,
             options=options
         )
