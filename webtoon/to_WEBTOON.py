@@ -52,8 +52,8 @@ class Webtoon(webdriver.Remote):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-setuid-sandbox")
         super(Webtoon, self).__init__(
-            os.getenv('SELENIUM_GRID_ADDRESS'),
-            DesiredCapabilities.CHROME,
+            command_executor=os.getenv('SELENIUM_GRID_ADDRESS'),
+            desired_capabilities=DesiredCapabilities.CHROME,
             options=options
         )
 
@@ -176,12 +176,6 @@ class Webtoon(webdriver.Remote):
         genres_and_webtoon_urls = GetWebtoonLinks(driver=self)
         genres_and_webtoon_urls.get_genres()
         genres_and_webtoon_urls.get_webtoon_list()
-        if self.storage == 'RDS':
-            pass
-        else:
-            local_storage = LocalDownload()
-            local_storage.download_genres()
-            local_storage.download_webtoon_urls()
 
     async def get_webtoon_info(self):
         """Asynchronously gathers the title, author, genre, views, subscribers and
@@ -219,12 +213,6 @@ class Webtoon(webdriver.Remote):
                     info_tasks.append(info_task)
 
             await asyncio.gather(*info_tasks)
-
-        if self.storage == 'RDS':
-            pass
-        else:
-            local_storage = LocalDownload()
-            local_storage.download_webtoon_info()
 
     async def get_episode_list(self):
         """Asynchronously gathers a list of all episodes currently available for each
@@ -323,12 +311,6 @@ class Webtoon(webdriver.Remote):
                 except Exception:
                     self.nordvpn()
 
-        if self.storage == 'RDS':
-            pass
-        else:
-            local_storage = LocalDownload()
-            local_storage.download_episode_and_img_urls()
-
     async def scrape_images(self):
         """Using the image urls scraped from each episode, this method uploads the image
         to an Amazon S3 bucket
@@ -363,8 +345,13 @@ class Webtoon(webdriver.Remote):
                 except Exception:
                     self.nordvpn()
 
+    def download_data_locally(self):
         if self.storage == 'RDS':
             pass
         else:
             local_storage = LocalDownload()
+            local_storage.download_genres()
+            local_storage.download_webtoon_urls()
+            local_storage.download_webtoon_info()
+            local_storage.download_episode_and_img_urls()
             local_storage.locally_download_all_images()

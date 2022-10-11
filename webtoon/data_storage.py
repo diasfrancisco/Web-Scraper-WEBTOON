@@ -254,13 +254,13 @@ class LocalDownload(AWSPostgreSQLRDS):
         for r in webtoon_info_data:
             # Create the following dictionary for every webtoon
             all_webtoon_info_dict = {
-                {r[0]}: {
+                r[0]: {
                     'Genre': {r[1]},
                     'Title': {r[2]},
                     'Authors': {r[3]},
                     'Views': {r[4]},
                     'Subscribers': {r[5]},
-                    'Rating': {r[6]},
+                    'Rating': {r[6]}
                 }
             }
             # Create file if it doesn't already exist

@@ -13,7 +13,7 @@ def main():
         print()
 
         t0 = time.time()
-        bot.set_storage_location()
+        #bot.set_storage_location()
         bot.get_main_page()
         # bot.bypass_age_gate()
         # bot.load_and_accept_cookies()
