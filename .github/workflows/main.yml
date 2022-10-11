@@ -2,7 +2,13 @@ name: DockerHub
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - 'master'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'master'
 
   workflow_dispatch:
 
